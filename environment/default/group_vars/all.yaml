@@ -1,0 +1,7 @@
+azr_resource_group: openshift
+azr_location: eastus
+azr_aro_cluster: openshift
+azr_aro_pull_secret: ~/Downloads/pull-secret.txt
+
+azr_aro_public_api: true
+azr_aro_public_ingress: true

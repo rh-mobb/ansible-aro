@@ -1,0 +1,16 @@
+---
+- name: check cluster
+  shell: |
+    az aro show \
+    --resource-group {{ azr_resource_group }} \
+    --name {{ azr_aro_cluster }}
+  register: aro_check
+  failed_when: False
+  changed_when: False
+
+- name: delete aro cluster
+  shell: |
+    az aro delete \
+    --resource-group {{ azr_resource_group }} \
+    --name {{ azr_aro_cluster }} --yes
+  when: aro_check.rc == 0

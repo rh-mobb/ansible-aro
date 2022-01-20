@@ -1,0 +1,33 @@
+---
+- name: what cluster am i creating?
+  debug:
+    msg: |
+      ***************************************
+      Preparing to create {{ azr_aro_cluster }}.
+      This task may take up to an hour.
+      ***************************************
+    verbosity: 0
+
+- name: check cluster
+  shell: |
+    az aro show \
+    --resource-group {{ azr_resource_group }} \
+    --name {{ azr_aro_cluster }}
+  register: aro_check
+  failed_when: False
+  changed_when: False
+
+- name: create aro cluster
+  shell: |
+    az aro create \
+    --resource-group {{ azr_resource_group }} \
+    --name {{ azr_aro_cluster }} \
+    --vnet "{{ azr_virtual_network.name }}" \
+    --master-subnet "{{ azr_aro_control_subnet.name }}" \
+    --worker-subnet "{{ azr_aro_machine_subnet.name }}" \
+    --pull-secret @{{ azr_aro_pull_secret }} \
+    --apiserver-visibility {{ azr_aro_public_api | ternary('public', 'private') }} \
+    --ingress-visibility {{ azr_aro_public_ingress  | ternary('public', 'private') }}
+  when:
+    - aro_check.rc == 1
+

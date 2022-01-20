@@ -1,0 +1,54 @@
+---
+
+#  az group create \
+#    --name $AZR_RESOURCE_GROUP \
+#    --location $AZR_RESOURCE_LOCATION
+- name: Create a resource group
+  azure_rm_resourcegroup:
+    name: "{{ azr_resource_group }}"
+    location: "{{ azr_location }}"
+    state: present
+    tags: "{{ azr_tags }}"
+
+# az network vnet create \
+#    --address-prefixes 10.0.0.0/22 \
+#    --name "$AZR_CLUSTER-aro-vnet-$AZR_RESOURCE_LOCATION" \
+#    --resource-group $AZR_RESOURCE_GROUP
+- name: Create a virtual network
+  azure.azcollection.azure_rm_virtualnetwork:
+    resource_group: "{{ azr_resource_group }}"
+    name: "{{ azr_virtual_network.name }}"
+    address_prefixes_cidr: "{{ azr_virtual_network.address_prefixes_cidr }}"
+    tags: "{{ azr_tags }}"
+
+
+#  az network vnet subnet create \
+#    --resource-group $AZR_RESOURCE_GROUP \
+#    --vnet-name "$AZR_CLUSTER-aro-vnet-$AZR_RESOURCE_LOCATION" \
+#    --name "$AZR_CLUSTER-aro-control-subnet-$AZR_RESOURCE_LOCATION" \
+#    --address-prefixes 10.0.0.0/23 \
+#    --service-endpoints Microsoft.ContainerRegistry
+- name: Create a control subnet
+  azure_rm_subnet:
+    resource_group: "{{ azr_resource_group }}"
+    virtual_network_name: "{{ azr_virtual_network.name }}"
+    name: "{{ azr_aro_control_subnet.name }}"
+    address_prefix_cidr: "{{ azr_aro_control_subnet.address_prefix_cidr }}"
+    service_endpoints:
+      - service: "Microsoft.ContainerRegistry"
+    private_link_service_network_policies: Disabled
+# az network vnet subnet create \
+#    --resource-group $AZR_RESOURCE_GROUP \
+#    --vnet-name "$AZR_CLUSTER-aro-vnet-$AZR_RESOURCE_LOCATION" \
+#    --name "$AZR_CLUSTER-aro-machine-subnet-$AZR_RESOURCE_LOCATION" \
+#    --address-prefixes 10.0.2.0/23 \
+#    --service-endpoints Microsoft.ContainerRegistry
+- name: Create a machine subnet
+  azure_rm_subnet:
+    resource_group: "{{ azr_resource_group }}"
+    virtual_network_name: "{{ azr_virtual_network.name }}"
+    name: "{{ azr_aro_machine_subnet.name }}"
+    address_prefix_cidr: "{{ azr_aro_machine_subnet.address_prefix_cidr }}"
+    service_endpoints:
+      - service: "Microsoft.ContainerRegistry"
+

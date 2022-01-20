@@ -1,0 +1,32 @@
+---
+# defaults file for roles/cluster-create
+
+azr_aro_cluster: openshift
+azr_aro_pull_secret: ~/Downloads/pull-secret.txt
+
+azr_aro_public_api: true
+azr_aro_public_ingress: true
+
+# defaults file for roles/infra
+azr_resource_group: openshift
+azr_location: eastus
+azr_tags:
+  created_by: ansible-aro
+
+azr_virtual_network:
+  name: openshift-vnet
+  address_prefixes_cidr:
+    - "10.0.0.0/22"
+
+azr_aro_control_subnet:
+  name: openshift-control-subnet
+  address_prefix_cidr: "10.0.0.0/23"
+
+azr_aro_machine_subnet:
+  name: openshift-machine-subnet
+  address_prefix_cidr: "10.0.2.0/23"
+
+#  AZR_RESOURCE_LOCATION=eastus
+#  AZR_RESOURCE_GROUP=openshift
+#  AZR_CLUSTER=cluster
+#  AZR_PULL_SECRET=~/Downloads/pull-secret.txt

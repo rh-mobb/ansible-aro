@@ -1,0 +1,4 @@
+virtualenv/*
+tmp/*
+bin/*
+pullsecret.txt

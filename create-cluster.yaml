@@ -1,0 +1,14 @@
+---
+- hosts:      "all"
+  connection: "local"
+  vars_files:
+      - vars/main.yaml
+
+  roles:
+    - name: roles/infra-create
+    - name: roles/cluster-create
+    # - name: roles/jumphost-create
+    #   when:
+    #     - aro_private or
+    #       (enable_jumphost | default(False) | bool)
+
