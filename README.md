@@ -1,11 +1,13 @@
 # ansible-ARO
 
+```
 *******************************************************************
 * 							                                      *
 *  This project is provided as-is, and is not an official or      *
 *  Supported Red Hat project. We will happily accept issues and   *
 *  Pull Requests and provide basic OSS level community support    *
 *******************************************************************
+```
 
 This project contains a set of modules for working with ARO as well as some example playbooks.
 
