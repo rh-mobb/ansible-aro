@@ -37,6 +37,8 @@
     service_endpoints:
       - service: "Microsoft.ContainerRegistry"
     private_link_service_network_policies: Disabled
+  register: _control_subnet
+
 # az network vnet subnet create \
 #    --resource-group $AZR_RESOURCE_GROUP \
 #    --vnet-name "$AZR_CLUSTER-aro-vnet-$AZR_RESOURCE_LOCATION" \
@@ -51,4 +53,15 @@
     address_prefix_cidr: "{{ azr_aro_machine_subnet.address_prefix_cidr }}"
     service_endpoints:
       - service: "Microsoft.ContainerRegistry"
+  register: _machine_subnet
+
+- debug:
+    var: _control_subnet
+
+- debug:
+    var: _machine_subnet
+
+
+    # var "{{ _control_subnet.id }}"
+    # msg: "{{ _machine_subnet.id }}"
 

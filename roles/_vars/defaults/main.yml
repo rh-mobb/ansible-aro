@@ -7,6 +7,11 @@ azr_aro_pull_secret: ~/Downloads/pull-secret.txt
 azr_aro_public_api: true
 azr_aro_public_ingress: true
 
+# leave these null unless using pre-existing subnets
+# if preexisting needs to be in "/subscriptions/xx-xx-xx-xx-xx/resourceGroups/myResourceGroup/Microsoft.Network/virtualNetworks/myVnet/subnets/worker" format
+azr_aro_control_subnet_id: ~
+azr_aro_machine_subnet_id: ~
+
 # defaults file for roles/infra
 azr_resource_group: openshift
 azr_location: eastus
