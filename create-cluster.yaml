@@ -7,8 +7,15 @@
   roles:
     - name: roles/infra-create
     - name: roles/cluster-create
-    # - name: roles/jumphost-create
-    #   when:
-    #     - aro_private or
-    #       (enable_jumphost | default(False) | bool)
-
+    - name: roles/jumphost-create
+      when:
+        - azr_jumphost | bool
+    - name: roles/egress-lockdown
+      when:
+        - azr_aro_egress_lockdown | bool
+    - name: roles/wait-for-cluster
+    # rerun infra-create as we need to update routes for egress lockdown
+    - name: roles/infra-create
+      when:
+          - azr_aro_egress_lockdown | bool
+    - name: roles/finish

@@ -21,17 +21,29 @@ azr_tags:
 azr_virtual_network:
   name: openshift-vnet
   address_prefixes_cidr:
-    - "10.0.0.0/22"
+    - "10.0.0.0/20"
 
 azr_aro_control_subnet:
   name: openshift-control-subnet
-  address_prefix_cidr: "10.0.0.0/23"
+  address_prefix_cidr: "10.0.0.0/24"
 
 azr_aro_machine_subnet:
   name: openshift-machine-subnet
-  address_prefix_cidr: "10.0.2.0/23"
+  address_prefix_cidr: "10.0.1.0/24"
+
+azr_jumphost_subnet:
+  name: jumphost-subnet
+  address_prefix_cidr: "10.0.2.0/24"
+
+azr_jumphost: false
+azr_jumphost_ssh_key: ~/.ssh/id_rsa
+
+
+azr_firewall_subnet:
+  address_prefix_cidr: "10.0.3.0/24"
 
 #  AZR_RESOURCE_LOCATION=eastus
 #  AZR_RESOURCE_GROUP=openshift
 #  AZR_CLUSTER=cluster
 #  AZR_PULL_SECRET=~/Downloads/pull-secret.txt
+azr_aro_egress_lockdown: false

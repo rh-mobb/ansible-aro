@@ -37,11 +37,11 @@ create:
 delete:
 	$(ANSIBLE) -v delete-cluster.yaml
 
-# create.multiaz:
-# 	$(ANSIBLE) -v create-cluster.yaml -i ./environment/multi-az/hosts
+create.private:
+	$(ANSIBLE) -v create-cluster.yaml -i ./environment/private/hosts
 
-# delete.multiaz:
-# 	$(ANSIBLE) -v delete-cluster.yaml -i ./environment/multi-az/hosts
+delete.private:
+	$(ANSIBLE) -v delete-cluster.yaml -i ./environment/private/hosts
 
 # docker.create: image
 # 	docker run --rm \

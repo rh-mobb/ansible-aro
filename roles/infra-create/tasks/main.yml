@@ -1,8 +1,4 @@
 ---
-
-#  az group create \
-#    --name $AZR_RESOURCE_GROUP \
-#    --location $AZR_RESOURCE_LOCATION
 - name: Create a resource group
   azure_rm_resourcegroup:
     name: "{{ azr_resource_group }}"
@@ -10,10 +6,6 @@
     state: present
     tags: "{{ azr_tags }}"
 
-# az network vnet create \
-#    --address-prefixes 10.0.0.0/22 \
-#    --name "$AZR_CLUSTER-aro-vnet-$AZR_RESOURCE_LOCATION" \
-#    --resource-group $AZR_RESOURCE_GROUP
 - name: Create a virtual network
   azure.azcollection.azure_rm_virtualnetwork:
     resource_group: "{{ azr_resource_group }}"
@@ -21,45 +13,98 @@
     address_prefixes_cidr: "{{ azr_virtual_network.address_prefixes_cidr }}"
     tags: "{{ azr_tags }}"
 
-
-#  az network vnet subnet create \
-#    --resource-group $AZR_RESOURCE_GROUP \
-#    --vnet-name "$AZR_CLUSTER-aro-vnet-$AZR_RESOURCE_LOCATION" \
-#    --name "$AZR_CLUSTER-aro-control-subnet-$AZR_RESOURCE_LOCATION" \
-#    --address-prefixes 10.0.0.0/23 \
-#    --service-endpoints Microsoft.ContainerRegistry
-- name: Create a control subnet
-  azure_rm_subnet:
+- name: Get Azure Firewall
+  azure_rm_azurefirewall_info:
     resource_group: "{{ azr_resource_group }}"
-    virtual_network_name: "{{ azr_virtual_network.name }}"
-    name: "{{ azr_aro_control_subnet.name }}"
-    address_prefix_cidr: "{{ azr_aro_control_subnet.address_prefix_cidr }}"
-    service_endpoints:
-      - service: "Microsoft.ContainerRegistry"
-    private_link_service_network_policies: Disabled
-  register: _control_subnet
+    name: firewall
+  register: _firewall
+  when:
+    - azr_aro_egress_lockdown | bool
+  failed_when: false
 
-# az network vnet subnet create \
-#    --resource-group $AZR_RESOURCE_GROUP \
-#    --vnet-name "$AZR_CLUSTER-aro-vnet-$AZR_RESOURCE_LOCATION" \
-#    --name "$AZR_CLUSTER-aro-machine-subnet-$AZR_RESOURCE_LOCATION" \
-#    --address-prefixes 10.0.2.0/23 \
-#    --service-endpoints Microsoft.ContainerRegistry
-- name: Create a machine subnet
-  azure_rm_subnet:
-    resource_group: "{{ azr_resource_group }}"
-    virtual_network_name: "{{ azr_virtual_network.name }}"
-    name: "{{ azr_aro_machine_subnet.name }}"
-    address_prefix_cidr: "{{ azr_aro_machine_subnet.address_prefix_cidr }}"
-    service_endpoints:
-      - service: "Microsoft.ContainerRegistry"
-  register: _machine_subnet
+# - block:
+#     - debug:
+#         msg: "Waiting for cluster to finish provisioning."
 
-- debug:
-    var: _control_subnet
+#     - async_status:
+#         jid: "{{ _aro_create.ansible_job_id }}"
+#       register: _aro_create_status
+#       until: _aro_create_status.finished
+#       retries: 120
+#       delay: 60
+#   when: (_aro_create is defined) and ("ansible_job_id" in _aro_create.keys())
 
-- debug:
-    var: _machine_subnet
+# - name: check cluster
+#   shell: |
+#     az aro show \
+#     --resource-group {{ azr_resource_group }} \
+#     --name {{ azr_aro_cluster }}
+#   register: _aro_check
+#   failed_when: False
+#   changed_when: False
+
+# - fail:
+#     msg: "Cluster {{ azr_aro_cluster }} failed to provision."
+#   when: (_aro_check.rc == 0) and ((_aro_check.stdout | from_json).provisioningState == "Failed")
+
+- block:
+    - name: Create a control subnet
+      azure_rm_subnet:
+        resource_group: "{{ azr_resource_group }}"
+        virtual_network_name: "{{ azr_virtual_network.name }}"
+        name: "{{ azr_aro_control_subnet.name }}"
+        address_prefix_cidr: "{{ azr_aro_control_subnet.address_prefix_cidr }}"
+        service_endpoints:
+          - service: "Microsoft.ContainerRegistry"
+        private_link_service_network_policies: Disabled
+      register: _control_subnet
+
+    - name: Create a machine subnet
+      azure_rm_subnet:
+        resource_group: "{{ azr_resource_group }}"
+        virtual_network_name: "{{ azr_virtual_network.name }}"
+        name: "{{ azr_aro_machine_subnet.name }}"
+        address_prefix_cidr: "{{ azr_aro_machine_subnet.address_prefix_cidr }}"
+        service_endpoints:
+          - service: "Microsoft.ContainerRegistry"
+      register: _machine_subnet
+  when: (_firewall.firewalls is not defined) or
+        (not _cluster_ready | default(False))
+
+- block:
+    - name: Update a control subnet to use egress route
+      azure_rm_subnet:
+        resource_group: "{{ azr_resource_group }}"
+        virtual_network_name: "{{ azr_virtual_network.name }}"
+        name: "{{ azr_aro_control_subnet.name }}"
+        address_prefix_cidr: "{{ azr_aro_control_subnet.address_prefix_cidr }}"
+        service_endpoints:
+          - service: "Microsoft.ContainerRegistry"
+        private_link_service_network_policies: Disabled
+        route_table:
+          name: aroRouteTable
+          resource_group: "{{ azr_resource_group }}"
+
+    - name: update machine subnet to use egress route
+      azure_rm_subnet:
+        resource_group: "{{ azr_resource_group }}"
+        virtual_network_name: "{{ azr_virtual_network.name }}"
+        name: "{{ azr_aro_machine_subnet.name }}"
+        address_prefix_cidr: "{{ azr_aro_machine_subnet.address_prefix_cidr }}"
+        service_endpoints:
+          - service: "Microsoft.ContainerRegistry"
+        route_table:
+          name: aroRouteTable
+          resource_group: "{{ azr_resource_group }}"
+  when:
+    - _firewall.firewalls is defined
+    - azr_aro_egress_lockdown | bool
+    - _cluster_ready | default(False)
+# - debug:
+#     var: _control_subnet
+
+# - debug:
+#     var: _machine_subnet
 
 
     # var "{{ _control_subnet.id }}"

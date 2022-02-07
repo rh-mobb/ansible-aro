@@ -1,0 +1,110 @@
+---
+# tasks file for roles/jumphost-create
+
+# azr_jumphost: true
+# azr_jumphost_ssh_key: ~/.ssh/id_rsa
+# azr_jumphost_subnet:
+#   name: jumphost
+#   address_prefix_cidr: "10.0.3.0/24"
+
+- name: Create a firewall subnet
+  azure_rm_subnet:
+    resource_group: "{{ azr_resource_group }}"
+    virtual_network_name: "{{ azr_virtual_network.name }}"
+    name: "AzureFirewallSubnet"
+    address_prefix_cidr: "{{ azr_firewall_subnet.address_prefix_cidr }}"
+  register: _firewall_subnet
+
+- name: Create public IP address
+  azure_rm_publicipaddress:
+      resource_group: "{{ azr_resource_group }}"
+      allocation_method: Static
+      name: "firewall"
+      sku: Standard
+
+- name: Create Azure Firewall
+  azure_rm_azurefirewall:
+    resource_group: "{{ azr_resource_group }}"
+    name: firewall
+    ip_configurations:
+      - subnet:
+          name: "AzureFirewallSubnet"
+          virtual_network_name: "{{ azr_virtual_network.name }}"
+        public_ip_address:
+          name: firewall
+        name: azureFirewallIpConfiguration
+    application_rule_collections:
+          - priority: 100
+            action: allow
+            name: egress
+            rules:
+              - name: aro
+                description: allow aro hosts
+                source_addresses: ['*']
+                protocols:
+                  - type: https
+                    port: '443'
+                  - type: http
+                    port: '80'
+                target_fqdns:
+                  - 'registry.redhat.io'
+                  - '*.quay.io'
+                  - 'sso.redhat.com'
+                  - 'management.azure.com'
+                  - 'mirror.openshift.com'
+                  - 'api.openshift.com'
+                  - 'quay.io'
+                  - '*.blob.core.windows.net'
+                  - 'gcs.prod.monitoring.core.windows.net'
+                  - 'registry.access.redhat.com'
+                  - 'login.microsoftonline.com'
+                  - '*.servicebus.windows.net'
+                  - '*.table.core.windows.net'
+                  - 'grafana.com'
+              - name: package
+                description: allow package registries
+                source_addresses: ['*']
+                protocols:
+                  - type: https
+                    port: '443'
+                  - type: http
+                    port: '80'
+                target_fqdns:
+                  - '*cloudflare.docker.com'
+                  - '*registry-1.docker.io'
+                  - 'apt.dockerproject.org'
+                  - 'auth.docker.io'
+
+- name: Get Azure Firewall
+  azure_rm_azurefirewall_info:
+    resource_group: "{{ azr_resource_group }}"
+    name: firewall
+  register: _firewall
+
+- debug:
+    var: _firewall.firewalls.ip_configurations[0].properties.privateIPAddress
+
+- name: Create a route table
+  azure_rm_routetable:
+    resource_group: "{{ azr_resource_group }}"
+    name: aroRouteTable
+
+- name: Create a egress route
+  azure_rm_route:
+    resource_group: "{{ azr_resource_group }}"
+    name: aro-egress
+    address_prefix: 0.0.0.0/0
+    next_hop_type: virtual_appliance
+    route_table_name: aroRouteTable
+    next_hop_ip_address: "{{ _firewall.firewalls.ip_configurations[0].properties.privateIPAddress }}"
+
+- name: Create a vnet route
+  azure_rm_route:
+    resource_group: "{{ azr_resource_group }}"
+    name: aro-local
+    address_prefix: "{{ azr_virtual_network.address_prefixes_cidr[0]}}"
+    next_hop_type: vnet_local
+    route_table_name: aroRouteTable
+
+
+

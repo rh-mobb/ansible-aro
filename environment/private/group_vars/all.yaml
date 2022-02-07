@@ -1,0 +1,12 @@
+azr_resource_group: openshift-private
+azr_location: eastus
+azr_aro_cluster: openshift-private
+azr_aro_pull_secret: ~/Downloads/pull-secret.txt
+
+azr_aro_public_api: false
+azr_aro_public_ingress: false
+
+azr_jumphost: true
+azr_jumphost_ssh_key: ~/.ssh/id_rsa.pub
+azr_aro_egress_lockdown: true
+

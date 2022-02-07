@@ -1,0 +1,22 @@
+---
+- debug:
+    msg: "Waiting for cluster to finish provisioning."
+
+- name: check cluster
+  shell: |
+    az aro show \
+    --resource-group {{ azr_resource_group }} \
+    --name {{ azr_aro_cluster }}
+  register: _aro_check
+  failed_when: (_aro_check.stdout | from_json).provisioningState == "Failed"
+  changed_when: False
+  until: (_aro_check.rc == 0) and ((_aro_check.stdout | from_json).provisioningState == "Succeeded")
+  retries: 120
+  delay: 60
+
+- fail:
+    msg: "Cluster {{ azr_aro_cluster }} failed to provision."
+  when: (_aro_check.rc == 0) and ((_aro_check.stdout | from_json).provisioningState == "Failed")
+
+- set_fact:
+    _cluster_ready: True
