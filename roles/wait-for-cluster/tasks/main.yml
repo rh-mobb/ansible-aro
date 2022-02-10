@@ -9,6 +9,7 @@
     name: "{{ azr_aro_cluster }}"
   register: _aro_check
   until: (_aro_check.clusters.properties.provisioningState == "Succeeded")
+  failed_when: _aro_check.clusters.properties.provisioningState == "Failed"
   retries: 120
   delay: 60
 

@@ -1,0 +1,125 @@
+# make sure we have known subscription id and tenant id
+- block:
+  - name: get subscription
+    azure.azcollection.azure_rm_subscription_info:
+      all: True
+    register: _subscription
+
+  - set_fact:
+      azr_subscription_id: "{{ _subscription.subscriptions[0].subscription_id }}"
+    when: azr_subscription_id == ""
+  - set_fact:
+      azr_tenant_id: "{{ _subscription.subscriptions[0].tenant_id }}"
+    when: azr_tenant_id == ""
+  when:
+    - azr_subscription_id == "" or azr_tenant_id == ""
+    - _aro_check.clusters == {}
+
+- set_fact:
+    app_display_name: "http://ansible-aro-{{ azr_resource_group }}-{{ azr_aro_cluster }}"
+
+- name: check for existing ad app
+  azure.azcollection.azure_rm_adapplication_info:
+    tenant: "{{ azr_tenant_id }}"
+  register: _ad_applications
+  no_log: true
+
+- fail:
+    msg: "An AD application with display name '{{ app_display_name }}' already exists"
+  when:
+    - _ad_applications | json_query(jmesquery) != []
+  vars:
+        jmesquery: "applications[?app_display_name == `{{ app_display_name }}`]"
+
+# Create AD application
+- name: Create ad application
+  azure.azcollection.azure_rm_adapplication:
+    tenant: "{{ azr_tenant_id }}"
+    display_name: "{{ app_display_name }}"
+  register: _ad_application
+
+- set_fact:
+    azr_service_principal_application_id: "{{ _ad_application.app_id }}"
+    app_oid: "{{ _ad_application.object_id }}"
+
+- name: create ad sp
+  azure.azcollection.azure_rm_adserviceprincipal:
+    app_id: "{{ azr_service_principal_application_id }}"
+    state: present
+    tenant: "{{ azr_tenant_id }}"
+  register: _ad_sp
+
+- name: wait a minute for AD sync new SP
+  pause:
+    minutes: 1
+
+- set_fact:
+    sp_oid: "{{ _ad_sp.object_id }}"
+
+- name: create ad password
+  azure.azcollection.azure_rm_adpassword:
+    app_id: "{{ azr_service_principal_application_id }}"
+    value: "{{ azr_service_principal_application_secret }}"
+    tenant: "{{ azr_tenant_id }}"
+
+# Get object id for role definition of ARO Subscription
+- name: Obtain ARO Resource Group Role Definition Scope
+  azure.azcollection.azure_rm_roledefinition_info:
+    scope: "/subscriptions/{{ azr_subscription_id }}"
+  register: sub_roledef_scope_output
+  no_log: true
+
+- name: Obtain Object ID of Contributor Role Definition
+  set_fact:
+    fact: "{{ sub_roledef_scope_output | json_query(jmesquery) }}"
+  register: oid_sub_scope_query
+  vars:
+    jmesquery: "roledefinitions[?role_name == 'Contributor'].[id]"
+  no_log: true
+
+- name: Setting Object ID scope variable for the ARO Resource Group
+  set_fact:
+    sub_oid: "{{ oid_sub_scope_query.ansible_facts.fact[0][0] }}"
+
+- name: Create a role assignment
+  azure.azcollection.azure_rm_roleassignment:
+    scope: "/subscriptions/{{ azr_subscription_id }}"
+    assignee_object_id: "{{ sp_oid }}"
+    role_definition_id: "{{ sub_oid }}"
+    tenant: "{{ azr_tenant_id }}"
+    subscription_id: "{{ azr_subscription_id }}"
+  retries: 10
+  delay: 60
+
+# Get object id for role definition of ARO resource group
+- name: Obtain ARO Resource Group Role Definition Scope
+  azure.azcollection.azure_rm_roledefinition_info:
+    scope: "/subscriptions/{{ azr_subscription_id }}/resourceGroups/{{ azr_resource_group }}"
+  register: rg_roledef_scope_output
+  no_log: true
+
+- name: Obtain Object ID of Contributor Role Definition
+  set_fact:
+    fact: "{{ rg_roledef_scope_output | json_query(jmesquery) }}"
+  register: oid_rg_scope_query
+  vars:
+    jmesquery: "roledefinitions[?role_name == 'Contributor'].[id]"
+  no_log: true
+
+- name: Setting Object ID scope variable for the ARO Resource Group
+  set_fact:
+    rg_oid: "{{ oid_rg_scope_query.ansible_facts.fact[0][0] }}"
+
+- name: Granting the ARO Resource Provider Contributor access to the ARO virtual network
+  azure.azcollection.azure_rm_roleassignment:
+    scope: "/subscriptions/{{ azr_subscription_id }}/resourceGroups/{{ azr_resource_group }}/providers/Microsoft.Network/virtualNetworks/{{ azr_virtual_network.name }}"
+    assignee_object_id: "ebeeb6e8-af58-4204-9e58-efca7922a3cc"
+    role_definition_id: "{{ rg_oid }}"
+
+- name: Granting the ARO AAD Application Object ID Contributor access to the ARO virtual network
+  azure.azcollection.azure_rm_roleassignment:
+    scope: "/subscriptions/{{ azr_subscription_id }}/resourceGroups/{{ azr_resource_group }}/providers/Microsoft.Network/virtualNetworks/{{ azr_virtual_network.name }}"
+    assignee_object_id: "{{ sp_oid }}"
+    role_definition_id: "{{ rg_oid }}"
+
+    #

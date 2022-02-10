@@ -1,0 +1,138 @@
+---
+- name: what cluster am i creating?
+  debug:
+    msg: |
+      ***************************************
+      Preparing to create {{ azr_aro_cluster }}.
+      This task may take up to an hour.
+      ***************************************
+    verbosity: 0
+
+- name: check cluster
+  azure_rm_openshiftmanagedcluster_info:
+    resource_group: "{{ azr_resource_group }}"
+    name: "{{ azr_aro_cluster }}"
+  register: _aro_check
+  failed_when: False
+  changed_when: False
+
+- fail:
+    msg: |
+      Cluster {{ azr_aro_cluster }} failed to provision.
+      Cluster Status:
+      {{ _aro_check }}
+  when: (_aro_check.clusters != {}) and
+        (_aro_check.clusters.properties.provisioningState == "Failed")
+
+- block:
+  - name: get subscription
+    azure.azcollection.azure_rm_subscription_info:
+      all: True
+    register: _subscription
+
+  - set_fact:
+      azr_subscription_id: "{{ _subscription.subscriptions[0].subscription_id }}"
+    when: azr_subscription_id == ""
+  - set_fact:
+      azr_tenant_id: "{{ _subscription.subscriptions[0].tenant_id }}"
+    when: azr_tenant_id == ""
+  when:
+    - azr_subscription_id == "" or azr_tenant_id == ""
+    - _aro_check.clusters == {}
+
+- name: create service principal
+  command: "az ad sp create-for-rbac -n 'http://{{ azr_aro_cluster }}-ansible-aro' --role Contributor -o jsonc"
+  register: _aro_sp
+
+- set_fact:
+    aro_service_principal: "{{ _aro_sp.stdout | from_json }}"
+
+- name: get ad sp info
+  azure.azcollection.azure_rm_adserviceprincipal_info:
+    app_id: "{{ aro_service_principal.appId }}"
+    tenant: "{{ aro_service_principal.tenant }}"
+  no_log: true
+  register: _aro_sp_info
+
+- set_fact:
+    app_oid: "{{ _aro_sp_info.service_principals[0].object_id }}"
+
+- name: Obtain ARO Resource Group Role Definition Scope
+  azure.azcollection.azure_rm_roledefinition_info:
+    scope: "/subscriptions/{{ azr_subscription_id }}/resourceGroups/{{ azr_resource_group }}"
+  register: rg_roledef_scope_output
+
+- name: Obtain Object ID of Contributor Role Definition
+  set_fact:
+    fact: "{{ rg_roledef_scope_output | json_query(jmesquery) }}"
+  register: oid_rg_scope_query
+  vars:
+    jmesquery: "roledefinitions[?role_name == 'Contributor'].[id]"
+
+- name: Setting Object ID scope variable for the ARO Resource Group
+  set_fact:
+    rg_oid: "{{ oid_rg_scope_query.ansible_facts.fact[0][0] }}"
+
+- name: Granting the ARO Resource Provider Contributor access to the ARO virtual network
+  azure.azcollection.azure_rm_roleassignment:
+    scope: "/subscriptions/{{ azr_subscription_id }}/resourceGroups/{{ azr_resource_group }}/providers/Microsoft.Network/virtualNetworks/{{ azr_virtual_network.name }}"
+    assignee_object_id: "ebeeb6e8-af58-4204-9e58-efca7922a3cc"
+    role_definition_id: "{{ rg_oid }}"
+
+- name: Granting the ARO AAD Application Object ID Contributor access to the ARO virtual network
+  azure.azcollection.azure_rm_roleassignment:
+    scope: "/subscriptions/{{ azr_subscription_id }}/resourceGroups/{{ azr_resource_group }}/providers/Microsoft.Network/virtualNetworks/{{ azr_virtual_network.name }}"
+    assignee_object_id: "{{ app_oid }}"
+    role_definition_id: "{{ rg_oid }}"
+
+- block:
+  - name: what cluster am i creating?
+    debug:
+      msg: |
+        ***************************************
+        Preparing to create {{ azr_aro_cluster }}.
+        This task may take up to an hour.
+        ***************************************
+      verbosity: 0
+
+- name: Create openshift cluster
+  azure.azcollection.azure_rm_openshiftmanagedcluster:
+    resource_group: "{{ azr_resource_group }}"
+    name: "{{ azr_aro_cluster }}"
+    location: "{{ azr_location }}"
+    # cluster_profile:
+    ingress_profiles:
+      - visibility: "{{ azr_aro_public_ingress | ternary('Public', 'Private') }}"
+    api_server_profile:
+      visibility: "{{ azr_aro_public_api | ternary('Public', 'Private') }}"
+    service_principal_profile:
+      client_id: "{{ aro_service_principal.appId }}"
+      client_secret: "{{ aro_service_principal.password }}"
+    network_profile:
+      pod_cidr: "10.128.0.0/14"
+      service_cidr: "172.30.0.0/16"
+    worker_profiles:
+      - vm_size : "Standard_D4s_v3"
+        subnet_id : "{{ _machine_subnet.state.id }}"
+        disk_size : 128
+        count : 3
+    master_profile:
+      vm_size : "Standard_D8s_v3"
+      subnet_id: "{{ _control_subnet.state.id }}"
+  when:
+    - _aro_check.clusters == {}
+  # - name: create aro cluster
+  #   shell: |
+  #     az aro create \
+  #     --resource-group {{ azr_azr_resource_group }} \
+  #     --name {{ azr_aro_cluster }} \
+  #     --vnet "{{ azr_virtual_network.name }}" \
+  #     --master-subnet "{{ azr_aro_control_subnet.name }}" \
+  #     --worker-subnet "{{ azr_aro_machine_subnet.name }}" \
+  #     --pull-secret @{{ azr_aro_pull_secret }} \
+  #     --apiserver-visibility {{ azr_aro_public_api | ternary('public', 'private') }} \
+  #     --ingress-visibility {{ azr_aro_public_ingress  | ternary('public', 'private') }} \
+  #     --no-wait
+  #   register: _aro_create
+  # when:
+  #   - _aro_check.clusters == {}

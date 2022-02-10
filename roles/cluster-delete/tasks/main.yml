@@ -1,7 +1,49 @@
 ---
+- debug:
+    msg: |
+      ****************************************
+      Deleting cluster {{ azr_aro_cluster }}
+      ****************************************
+
 - name: Delete cluster
   azure.azcollection.azure_rm_openshiftmanagedcluster:
     resource_group: "{{ azr_resource_group }}"
     name: "{{ azr_aro_cluster }}"
     location: "{{ azr_location }}"
     state: absent
+
+- block:
+  - name: get subscription
+    azure.azcollection.azure_rm_subscription_info:
+      all: True
+    register: _subscription
+
+  - set_fact:
+      azr_subscription_id: "{{ _subscription.subscriptions[0].subscription_id }}"
+    when: azr_subscription_id == ""
+  - set_fact:
+      azr_tenant_id: "{{ _subscription.subscriptions[0].tenant_id }}"
+    when: azr_tenant_id == ""
+  when:
+    - azr_subscription_id == "" or azr_tenant_id == ""
+
+- set_fact:
+    app_display_name: "http://ansible-aro-{{ azr_resource_group }}-{{ azr_aro_cluster }}"
+
+- name: show ad application service principal
+  azure.azcollection.azure_rm_adapplication_info:
+    tenant: "{{ azr_tenant_id }}"
+  register: _ad_application
+  no_log: true
+
+# - debug:
+#     var: _ad_application.applications[0]
+
+- name: delete ad application
+  azure.azcollection.azure_rm_adapplication:
+    tenant: "{{ azr_tenant_id }}"
+    app_id: "{{ item.app_id  }}"
+    state: absent
+  when: item.app_display_name == app_display_name
+  with_items:
+    - "{{ _ad_application.applications }}"

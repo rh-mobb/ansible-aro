@@ -1,8 +1,13 @@
 ---
+azr_subscription_id: ""
+azr_tenant_id: ""
+azr_service_principal_application_id: ""
+azr_service_principal_application_secret: "$Abc12345678"
 # defaults file for roles/cluster-create
 
 azr_aro_cluster: openshift
 azr_aro_pull_secret: ~/Downloads/pull-secret.txt
+azr_aro_domain: mydomain
 
 azr_aro_public_api: true
 azr_aro_public_ingress: true
