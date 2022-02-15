@@ -14,6 +14,7 @@ virtualenv:
 	LC_ALL=en_US.UTF-8 ./virtualenv/bin/pip3 install -r requirements.txt
 	./virtualenv/bin/ansible-galaxy collection install azure.azcollection
 	./virtualenv/bin/pip3 install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements-azure.txt
+	./virtualenv/bin/ansible-galaxy collection install community.okd
 
 # docker.image:
 # 	docker build -t quay.io/pczar/ansible-rosa .

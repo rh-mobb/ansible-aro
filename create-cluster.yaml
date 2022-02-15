@@ -18,4 +18,9 @@
     - name: roles/infra-create
       when:
           - azr_aro_egress_lockdown | bool
+    - name: roles/add-pull-secret
+      when:
+        - azr_aro_pull_secret != ""
+        - azr_aro_public_api | bool
     - name: roles/finish
+

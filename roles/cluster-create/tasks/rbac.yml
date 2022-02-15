@@ -13,7 +13,7 @@
     when: azr_tenant_id == ""
   when:
     - azr_subscription_id == "" or azr_tenant_id == ""
-    - _aro_check.clusters == {}
+    # - _aro_check.clusters == {}
 
 - set_fact:
     app_display_name: "http://ansible-aro-{{ azr_resource_group }}-{{ azr_aro_cluster }}"
@@ -29,7 +29,7 @@
   when:
     - _ad_applications | json_query(jmesquery) != []
   vars:
-        jmesquery: "applications[?app_display_name == `{{ app_display_name }}`]"
+    jmesquery: "applications[?app_display_name == `{{ app_display_name }}`]"
 
 # Create AD application
 - name: Create ad application
@@ -110,10 +110,23 @@
   set_fact:
     rg_oid: "{{ oid_rg_scope_query.ansible_facts.fact[0][0] }}"
 
+- block:
+    - name: get object id of ARO resource provider
+      shell: |
+        az ad sp list --filter "displayname eq 'Azure Red Hat OpenShift RP'" \
+          --query "[?appDisplayName=='Azure Red Hat OpenShift RP'].{objectId: objectId}" \
+          -o tsv
+      register: _aro_provider
+      no_log: true
+
+    - set_fact:
+        azr_aro_provider_id: "{{ _aro_provider.stdout_lines[0] }}"
+  when: azr_aro_provider_id == ""
+
 - name: Granting the ARO Resource Provider Contributor access to the ARO virtual network
   azure.azcollection.azure_rm_roleassignment:
     scope: "/subscriptions/{{ azr_subscription_id }}/resourceGroups/{{ azr_resource_group }}/providers/Microsoft.Network/virtualNetworks/{{ azr_virtual_network.name }}"
-    assignee_object_id: "ebeeb6e8-af58-4204-9e58-efca7922a3cc"
+    assignee_object_id: "{{ azr_aro_provider_id }}"
     role_definition_id: "{{ rg_oid }}"
 
 - name: Granting the ARO AAD Application Object ID Contributor access to the ARO virtual network

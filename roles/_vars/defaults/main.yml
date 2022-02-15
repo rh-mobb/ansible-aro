@@ -1,6 +1,13 @@
 ---
 azr_subscription_id: ""
 azr_tenant_id: ""
+
+# set this to avoid having to shell out to az cli
+# the following command will provide you with the object id of the ARO RP
+# az ad sp list --filter "displayname eq 'Azure Red Hat OpenShift RP'" \
+#   --query "[?appDisplayName=='Azure Red Hat OpenShift RP'].{objectId: objectId}" \
+#   -o tsv
+azr_aro_provider_id: ""
 azr_service_principal_application_id: ""
 azr_service_principal_application_secret: "$Abc12345678"
 # defaults file for roles/cluster-create

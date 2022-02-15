@@ -1,0 +1,68 @@
+---
+- name: Get the existing OpenShift Pull Secret
+  kubernetes.core.k8s_info:
+    host: "{{ kube_api }}"
+    api_key: "{{ ocp_api_key }}"
+    api_version: v1
+    kind: Secret
+    name: pull-secret
+    namespace: openshift-config
+  register: _cluster_pull_secret
+
+- debug:
+    var: _cluster_pull_secret
+
+- set_fact:
+    _orig_pull_secret: "{{ _cluster_pull_secret.resources[0].data['.dockerconfigjson'] | b64decode | from_json }}"
+    _new_pull_secret: "{{ lookup('file', azr_aro_pull_secret) | from_json }}"
+  no_log: True
+- set_fact:
+    _joint_pull_secret: "{{ _orig_pull_secret | combine(_new_pull_secret, recursive=True) }}"
+  no_log: True
+
+- name: Set the new OpenShift Pull Secret
+  kubernetes.core.k8s:
+    host: "{{ kube_api }}"
+    api_key: "{{ ocp_api_key }}"
+    definition:
+      api_version: v1
+      kind: Secret
+      metadata:
+        name: pull-secret
+        namespace: openshift-config
+      data:
+        .dockerconfigjson: "{{ _joint_pull_secret | to_json | b64encode }}"
+  register: _cluster_pull_secret
+
+- name: Configure sample operators
+  kubernetes.core.k8s:
+    host: "{{ kube_api }}"
+    api_key: "{{ ocp_api_key }}"
+    api_version: samples.operator.openshift.io/v1
+    definition:
+      kind: Config
+      metadata:
+        name: cluster
+      spec:
+        architectures: ["x86_64"]
+        managementState: Managed
+
+- name: Configure operator hub
+  kubernetes.core.k8s:
+    host: "{{ kube_api }}"
+    api_key: "{{ ocp_api_key }}"
+    api_version: config.openshift.io/v1
+    definition:
+      kind: OperatorHub
+      metadata:
+        name: cluster
+      spec:
+        sources:
+        - disabled: false
+          name: certified-operators
+        - disabled: false
+          name: community-operators
+        - disabled: false
+          name: redhat-marketplace
+        - disabled: false
+          name: redhat-operators

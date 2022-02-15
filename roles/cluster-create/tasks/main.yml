@@ -7,6 +7,11 @@
   failed_when: False
   changed_when: False
 
+- debug:
+    msg: |
+      A cluster with the name {{ azr_aro_cluster }} already exists.
+      Skipping RBAC and Cluster Creation.
+
 - fail:
     msg: |
       Cluster {{ azr_aro_cluster }} failed to provision.
@@ -16,6 +21,8 @@
         (_aro_check.clusters.properties.provisioningState == "Failed")
 
 - include_tasks: rbac.yml
+  when:
+    - _aro_check.clusters == {}
 
 - block:
   - name: what cluster am i creating?
