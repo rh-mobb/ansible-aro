@@ -44,6 +44,8 @@ create.private:
 delete.private:
 	$(ANSIBLE) -v delete-cluster.yaml -i ./environment/private/hosts
 
+pull-secret:
+	$(ANSIBLE) -v pull-secret.yaml
 # docker.create: image
 # 	docker run --rm \
 # 		-v $(HOME)/.ocm.json:/home/ansible/.ocm.json \

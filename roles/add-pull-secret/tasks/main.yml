@@ -8,9 +8,10 @@
     name: pull-secret
     namespace: openshift-config
   register: _cluster_pull_secret
+  no_log: True
 
-- debug:
-    var: _cluster_pull_secret
+# - debug:
+#     var: _cluster_pull_secret
 
 - set_fact:
     _orig_pull_secret: "{{ _cluster_pull_secret.resources[0].data['.dockerconfigjson'] | b64decode | from_json }}"
@@ -32,7 +33,7 @@
         namespace: openshift-config
       data:
         .dockerconfigjson: "{{ _joint_pull_secret | to_json | b64encode }}"
-  register: _cluster_pull_secret
+  no_log: True
 
 - name: Configure sample operators
   kubernetes.core.k8s:

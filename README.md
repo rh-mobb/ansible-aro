@@ -44,3 +44,17 @@ make create
 ```bash
 make delete
 ```
+
+## Fix pull secret and operatorhub with ansible in a virtualenv
+
+### Create python virtualenv:
+
+```bash
+make virtualenv
+```
+
+### Fix Pull Secret and populate operatorhub
+
+```bash
+make pull-secret
+```
