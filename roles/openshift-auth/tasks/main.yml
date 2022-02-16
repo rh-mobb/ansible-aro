@@ -27,6 +27,9 @@
     username: "{{ kube_username }}"
     password: "{{ kube_password }}"
   register: openshift_auth_results
+  until: openshift_auth_results.openshift_auth is defined
+  retries: 30
+  delay: 10
 
 - set_fact:
     ocp_api_key: "{{ openshift_auth_results.openshift_auth.api_key }}"
@@ -36,6 +39,7 @@
 # are taken from module_defaults
 - name: Get a list of nodes
   kubernetes.core.k8s_info:
+    host: "{{ kube_api }}"
     api_key: "{{ ocp_api_key }}"
     kind: Node
   no_log: true
