@@ -35,7 +35,6 @@ options:
 
 extends_documentation_fragment:
     - azure.azcollection.azure
-    - azure.azcollection.azure_tags
 
 author:
     haiyuan_zhang (@haiyuazhang)
@@ -95,12 +94,14 @@ class AzureRMADServicePrincipalInfo(AzureRMModuleBase):
         self.module_arg_spec = dict(
             app_id=dict(type='str'),
             object_id=dict(type='str'),
+            display_name=dict(type='str'),
             tenant=dict(type='str', required=True),
         )
 
         self.tenant = None
         self.app_id = None
         self.object_id = None
+        self.display_name = None
         self.results = dict(changed=False)
 
         super(AzureRMADServicePrincipalInfo, self).__init__(derived_arg_spec=self.module_arg_spec,
@@ -117,10 +118,14 @@ class AzureRMADServicePrincipalInfo(AzureRMModuleBase):
 
         try:
             client = self.get_graphrbac_client(self.tenant)
-            if self.object_id is None:
-                service_principals = list(client.service_principals.list(filter="servicePrincipalNames/any(c:c eq '{0}')".format(self.app_id)))
-            else:
+            if self.object_id:
                 service_principals = [client.service_principals.get(self.object_id)]
+            elif self.app_id:
+                service_principals = list(client.service_principals.list(filter="servicePrincipalNames/any(c:c eq '{0}')".format(self.app_id)))
+            elif self.display_name:
+                service_principals = list(client.service_principals.list(filter="displayName eq '%s'" % self.display_name))
+            else:
+                self.fail("You must specify either app_id, object_id or display_name")
 
             self.results['service_principals'] = [self.to_dict(sp) for sp in service_principals]
         except GraphErrorException as ge:

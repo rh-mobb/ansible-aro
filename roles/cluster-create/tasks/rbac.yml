@@ -81,7 +81,7 @@
   set_fact:
     sub_oid: "{{ oid_sub_scope_query.ansible_facts.fact[0][0] }}"
 
-- name: Create a role assignment
+- name: Give ARO Subscription Contributor Role to the Service Principal
   azure.azcollection.azure_rm_roleassignment:
     scope: "/subscriptions/{{ azr_subscription_id }}"
     assignee_object_id: "{{ sp_oid }}"
@@ -103,7 +103,7 @@
     fact: "{{ rg_roledef_scope_output | json_query(jmesquery) }}"
   register: oid_rg_scope_query
   vars:
-    jmesquery: "roledefinitions[?role_name == 'Contributor'].[id]"
+    jmesquery: "roledefinitions[?role_name == 'Network Contributor'].[id]"
   no_log: true
 
 - name: Setting Object ID scope variable for the ARO Resource Group
@@ -111,16 +111,14 @@
     rg_oid: "{{ oid_rg_scope_query.ansible_facts.fact[0][0] }}"
 
 - block:
-    - name: get object id of ARO resource provider
-      shell: |
-        az ad sp list --filter "displayname eq 'Azure Red Hat OpenShift RP'" \
-          --query "[?appDisplayName=='Azure Red Hat OpenShift RP'].{objectId: objectId}" \
-          -o tsv
-      register: _aro_provider
-      no_log: true
+    - name: get ad sp info
+      azure_rm_adserviceprincipal_info:
+        display_name: "Azure Red Hat OpenShift RP"
+        tenant: "{{ azr_tenant_id }}"
+      register: _aro_rp_info
 
     - set_fact:
-        azr_aro_provider_id: "{{ _aro_provider.stdout_lines[0] }}"
+        azr_aro_provider_id: "{{ _aro_rp_info.service_principals[0].object_id }}"
   when: azr_aro_provider_id == ""
 
 - name: Granting the ARO Resource Provider Contributor access to the ARO virtual network
@@ -129,10 +127,3 @@
     assignee_object_id: "{{ azr_aro_provider_id }}"
     role_definition_id: "{{ rg_oid }}"
 
-- name: Granting the ARO AAD Application Object ID Contributor access to the ARO virtual network
-  azure.azcollection.azure_rm_roleassignment:
-    scope: "/subscriptions/{{ azr_subscription_id }}/resourceGroups/{{ azr_resource_group }}/providers/Microsoft.Network/virtualNetworks/{{ azr_virtual_network.name }}"
-    assignee_object_id: "{{ sp_oid }}"
-    role_definition_id: "{{ rg_oid }}"
-
-    #
