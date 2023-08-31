@@ -1,6 +1,6 @@
 ---
 - name: check cluster
-  azure_rm_openshiftmanagedcluster_info:
+  azure.azcollection.azure_rm_openshiftmanagedcluster_info:
     resource_group: "{{ azr_resource_group }}"
     name: "{{ azr_aro_cluster }}"
   register: _aro_cluster

@@ -1,12 +1,17 @@
 .DEFAULT_GOAL := help
-.PHONY: help virtualenv kind image deploy
+
+CLUSTER_NAME ?= ans-$(shell whoami)
+RESOURCE_GROUP ?= ans-$(shell whoami)-rg
+EXTRA_VARS ?= --extra-vars "azr_aro_cluster=$(CLUSTER_NAME) azr_resource_group=$(RESOURCE_GROUP)"
 
 VIRTUALENV ?= "./virtualenv/"
-ANSIBLE = $(VIRTUALENV)/bin/ansible-playbook
+ANSIBLE = $(VIRTUALENV)/bin/ansible-playbook $(EXTRA_VARS)
 
+.PHONY: help
 help:
 	@echo GLHF
 
+.PHONY: virtualenv
 virtualenv:
 	LC_ALL=en_US.UTF-8 python3 -m venv $(VIRTUALENV)
 	. $(VIRTUALENV)/bin/activate
@@ -15,6 +20,8 @@ virtualenv:
 	./virtualenv/bin/ansible-galaxy collection install azure.azcollection --force
 	./virtualenv/bin/pip3 install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements-azure.txt
 	./virtualenv/bin/ansible-galaxy collection install community.okd
+
+.PHONY: help
 
 # docker.image:
 # 	docker build -t quay.io/pczar/ansible-rosa .
