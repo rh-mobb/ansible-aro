@@ -1,30 +1,37 @@
 # make sure we have known subscription id and tenant id
-- block:
-  - name: get subscription
-    azure.azcollection.azure_rm_subscription_info:
-      all: True
-    register: _subscription
-
-  - set_fact:
-      azr_subscription_id: "{{ _subscription.subscriptions[0].subscription_id }}"
-    when: azr_subscription_id == ""
-  - set_fact:
-      azr_tenant_id: "{{ _subscription.subscriptions[0].tenant_id }}"
-    when: azr_tenant_id == ""
+# TODO - revisit this, may not be needed with azure_auth role. Or maybe move this logic in there
+- name: Get subscription block
   when:
     - azr_subscription_id == "" or azr_tenant_id == ""
     # - _aro_check.clusters == {}
+  block:
+    - name: Get subscription
+      azure.azcollection.azure_rm_subscription_info:
+        all: true
+      register: _subscription
 
-- set_fact:
+    - name: Set Sub fact
+      ansible.builtin.set_fact:
+        azr_subscription_id: "{{ _subscription.subscriptions[0].subscription_id }}"
+      when: azr_subscription_id == ""
+    - name: Set tenant id
+      ansible.builtin.set_fact:
+        azr_tenant_id: "{{ _subscription.subscriptions[0].tenant_id }}"
+      when: azr_tenant_id == ""
+
+
+- name: Set ARO URL fact
+  ansible.builtin.set_fact:
     app_display_name: "http://ansible-aro-{{ azr_resource_group }}-{{ azr_aro_cluster }}"
 
-- name: check for existing ad app
+- name: Get all AD Applications from Tenant
   azure.azcollection.azure_rm_adapplication_info:
     tenant: "{{ azr_tenant_id }}"
   register: _ad_applications
-  no_log: true
+  no_log: false # TODO - Change me back after troubleshooting
 
-- fail:
+- name: Fail if app already exists
+  ansible.builtin.fail:
     msg: "An AD application with display name '{{ app_display_name }}' already exists"
   when:
     - _ad_applications | json_query(jmesquery) != []
@@ -38,25 +45,27 @@
     display_name: "{{ app_display_name }}"
   register: _ad_application
 
-- set_fact:
+- name: Set app facts
+  ansible.builtin.set_fact:
     azr_service_principal_application_id: "{{ _ad_application.app_id }}"
     app_oid: "{{ _ad_application.object_id }}"
 
-- name: create ad sp
+- name: Create ad sp
   azure.azcollection.azure_rm_adserviceprincipal:
     app_id: "{{ azr_service_principal_application_id }}"
     state: present
     tenant: "{{ azr_tenant_id }}"
   register: _ad_sp
 
-- name: wait a minute for AD sync new SP
-  pause:
+- name: Wait a minute for AD sync new SP
+  ansible.builtin.pause:
     minutes: 1
 
-- set_fact:
+- name: Set sp_oid
+  ansible.builtin.set_fact:
     sp_oid: "{{ _ad_sp.object_id }}"
 
-- name: create ad password
+- name: Create ad password
   azure.azcollection.azure_rm_adpassword:
     app_id: "{{ azr_service_principal_application_id }}"
     value: "{{ azr_service_principal_application_secret }}"
@@ -67,18 +76,18 @@
   azure.azcollection.azure_rm_roledefinition_info:
     scope: "/subscriptions/{{ azr_subscription_id }}"
   register: sub_roledef_scope_output
-  no_log: true
+  no_log: false # TODO - Change me back after troubleshooting
 
 - name: Obtain Object ID of Contributor Role Definition
-  set_fact:
+  ansible.builtin.set_fact:
     fact: "{{ sub_roledef_scope_output | json_query(jmesquery) }}"
   register: oid_sub_scope_query
   vars:
     jmesquery: "roledefinitions[?role_name == 'Contributor'].[id]"
-  no_log: true
+  no_log: false # TODO - Change me back after troubleshooting
 
 - name: Setting Object ID scope variable for the ARO Resource Group
-  set_fact:
+  ansible.builtin.set_fact:
     sub_oid: "{{ oid_sub_scope_query.ansible_facts.fact[0][0] }}"
 
 - name: Give ARO Subscription Contributor Role to the Service Principal
@@ -96,30 +105,33 @@
   azure.azcollection.azure_rm_roledefinition_info:
     scope: "/subscriptions/{{ azr_subscription_id }}/resourceGroups/{{ azr_resource_group }}"
   register: rg_roledef_scope_output
-  no_log: true
+  no_log: false # TODO - Change me back after troubleshooting
 
 - name: Obtain Object ID of Contributor Role Definition
-  set_fact:
+  ansible.builtin.set_fact:
     fact: "{{ rg_roledef_scope_output | json_query(jmesquery) }}"
   register: oid_rg_scope_query
   vars:
     jmesquery: "roledefinitions[?role_name == 'Network Contributor'].[id]"
-  no_log: true
+  no_log: false # TODO - Change me back after troubleshooting
 
 - name: Setting Object ID scope variable for the ARO Resource Group
-  set_fact:
+  ansible.builtin.set_fact:
     rg_oid: "{{ oid_rg_scope_query.ansible_facts.fact[0][0] }}"
 
-- block:
-    - name: get ad sp info
+- name: Get AD Service Principal info
+  when: azr_aro_provider_id == ""
+  block:
+    - name: Get ad sp info
       azure_rm_adserviceprincipal_info:
         display_name: "Azure Red Hat OpenShift RP"
         tenant: "{{ azr_tenant_id }}"
       register: _aro_rp_info
 
-    - set_fact:
+    - name: Set SP Fact
+      ansible.builtin.set_fact:
         azr_aro_provider_id: "{{ _aro_rp_info.service_principals[0].object_id }}"
-  when: azr_aro_provider_id == ""
+
 
 - name: Granting the ARO Resource Provider Contributor access to the ARO virtual network
   azure.azcollection.azure_rm_roleassignment:

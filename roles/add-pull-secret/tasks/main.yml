@@ -8,18 +8,21 @@
     name: pull-secret
     namespace: openshift-config
   register: _cluster_pull_secret
-  no_log: True
+  no_log: false # TODO - Change me back after troubleshooting
 
 # - debug:
 #     var: _cluster_pull_secret
 
-- set_fact:
+- name: Set pull secrets
+  ansible.builtin.set_fact:
     _orig_pull_secret: "{{ _cluster_pull_secret.resources[0].data['.dockerconfigjson'] | b64decode | from_json }}"
     _new_pull_secret: "{{ lookup('file', azr_aro_pull_secret) | from_json }}"
-  no_log: True
-- set_fact:
+  no_log: false # TODO - Change me back after troubleshooting
+
+- name: Set joint secrets
+  set_fact:
     _joint_pull_secret: "{{ _orig_pull_secret | combine(_new_pull_secret, recursive=True) }}"
-  no_log: True
+  no_log: false # TODO - Change me back after troubleshooting
 
 - name: Set the new OpenShift Pull Secret
   kubernetes.core.k8s:
@@ -33,7 +36,7 @@
         namespace: openshift-config
       data:
         .dockerconfigjson: "{{ _joint_pull_secret | to_json | b64encode }}"
-  no_log: True
+  no_log: false # TODO - Change me back after troubleshooting
 
 - name: Configure sample operators
   kubernetes.core.k8s:
@@ -59,11 +62,11 @@
         name: cluster
       spec:
         sources:
-        - disabled: false
-          name: certified-operators
-        - disabled: false
-          name: community-operators
-        - disabled: false
-          name: redhat-marketplace
-        - disabled: false
-          name: redhat-operators
+          - disabled: false
+            name: certified-operators
+          - disabled: false
+            name: community-operators
+          - disabled: false
+            name: redhat-marketplace
+          - disabled: false
+            name: redhat-operators

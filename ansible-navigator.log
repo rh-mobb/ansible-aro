@@ -1,0 +1,63 @@
+2024-02-21T02:45:59.620155+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed
+2024-02-21T02:46:52.742202+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed
+2024-02-21T03:10:37.498730+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed
+2024-02-21T03:17:05.721138+00:00 CRITICAL 'ansible_navigator.actions._actions.run_interactive' Subcommand 'select' encountered a fatal error.
+2024-02-21T03:17:05.721505+00:00 ERROR 'ansible_navigator.actions._actions.run_interactive' Logging an uncaught exception
+Traceback (most recent call last):
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/_actions.py", line 154, in run_interactive
+    return run_action(app=app, interaction=interaction)
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/select.py", line 41, in run
+    app.steps.append(app.steps.current.select_func())  # add next
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/images.py", line 319, in _build_image_content
+    self._images.selected["python"]["details"],
+KeyError: 'details'
+2024-02-21T03:17:32.690950+00:00 CRITICAL 'ansible_navigator.actions._actions.run_interactive' Subcommand 'select' encountered a fatal error.
+2024-02-21T03:17:32.691084+00:00 ERROR 'ansible_navigator.actions._actions.run_interactive' Logging an uncaught exception
+Traceback (most recent call last):
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/_actions.py", line 154, in run_interactive
+    return run_action(app=app, interaction=interaction)
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/select.py", line 41, in run
+    app.steps.append(app.steps.current.select_func())  # add next
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/images.py", line 319, in _build_image_content
+    self._images.selected["python"]["details"],
+KeyError: 'details'
+2024-02-21T03:21:32.941863+00:00 CRITICAL 'ansible_navigator.actions._actions.run_interactive' Subcommand 'select' encountered a fatal error.
+2024-02-21T03:21:32.943153+00:00 ERROR 'ansible_navigator.actions._actions.run_interactive' Logging an uncaught exception
+Traceback (most recent call last):
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/_actions.py", line 154, in run_interactive
+    return run_action(app=app, interaction=interaction)
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/select.py", line 41, in run
+    app.steps.append(app.steps.current.select_func())  # add next
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/images.py", line 319, in _build_image_content
+    self._images.selected["python"]["details"],
+KeyError: 'details'
+2024-02-21T03:34:09.468488+00:00 CRITICAL 'ansible_navigator.actions._actions.run_interactive' Subcommand 'select' encountered a fatal error.
+2024-02-21T03:34:09.469256+00:00 ERROR 'ansible_navigator.actions._actions.run_interactive' Logging an uncaught exception
+Traceback (most recent call last):
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/_actions.py", line 154, in run_interactive
+    return run_action(app=app, interaction=interaction)
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/select.py", line 41, in run
+    app.steps.append(app.steps.current.select_func())  # add next
+  File "/home/alexb/.local/lib/python3.10/site-packages/ansible_navigator/actions/images.py", line 319, in _build_image_content
+    self._images.selected["python"]["details"],
+KeyError: 'details'
+2024-02-21T03:34:24.646435+00:00 WARNING 'ansible_navigator.image_manager.puller._log_message' Image inspection failed, image assumed to be corrupted or missing
+2024-02-21T03:34:24.646644+00:00 WARNING 'ansible_navigator.image_manager.puller._log_message' stdout: []
+
+2024-02-21T03:34:24.646682+00:00 WARNING 'ansible_navigator.image_manager.puller._log_message' stderr: Error: localhost/ee-supported-rel8:latest: image not known
+
+2024-02-21T03:34:27.728648+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed
+2024-02-21T03:34:42.140903+00:00 WARNING 'ansible_navigator.image_manager.puller._log_message' Image inspection failed, image assumed to be corrupted or missing
+2024-02-21T03:34:42.141124+00:00 WARNING 'ansible_navigator.image_manager.puller._log_message' stdout: []
+
+2024-02-21T03:34:42.141165+00:00 WARNING 'ansible_navigator.image_manager.puller._log_message' stderr: Error: localhost/ee-supported-rhel8:latest: image not known
+
+2024-02-21T03:34:45.224683+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed
+2024-02-21T03:35:08.539292+00:00 WARNING 'ansible_navigator.image_manager.puller._log_message' Image inspection failed, image assumed to be corrupted or missing
+2024-02-21T03:35:08.539536+00:00 WARNING 'ansible_navigator.image_manager.puller._log_message' stdout: []
+
+2024-02-21T03:35:08.539575+00:00 WARNING 'ansible_navigator.image_manager.puller._log_message' stderr: Error: localhost/ee-supported-rhel8:latest: image not known
+
+2024-02-21T03:35:11.618073+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed
+2024-02-21T17:10:13.782460+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed
+2024-02-21T17:11:54.322009+00:00 ERROR 'ansible_navigator.image_manager.puller._log_message' Execution environment pull failed

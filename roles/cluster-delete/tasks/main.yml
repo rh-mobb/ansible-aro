@@ -34,7 +34,7 @@
   azure.azcollection.azure_rm_adapplication_info:
     tenant: "{{ azr_tenant_id }}"
   register: _ad_application
-  no_log: true
+  no_log: false # TODO - Change me back after troubleshooting
 
 # - debug:
 #     var: _ad_application.applications[0]

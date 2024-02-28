@@ -1,0 +1,22 @@
+---
+# tasks file for azure-auth
+- name: Ensure required variables are set and not equal to "CHANGE_ME"
+  ansible.builtin.assert:
+    that:
+      - subscription_id is defined and subscription_id != "CHANGE_ME"
+      - tenant_id is defined and tenant_id != "CHANGE_ME"
+      - client_id is defined and client_id != "CHANGE_ME"
+      - client_password is defined and client_password != "CHANGE_ME"
+    fail_msg: "One or more required variables are not set or equal to 'CHANGE_ME'"
+
+- name: Ensure .azure directory exists
+  ansible.builtin.file:
+    path: "~/.azure"
+    state: directory
+    mode: '0755'
+
+- name: Generate azureProfile.json file
+  ansible.builtin.template:
+    src: azureProfile.json.j2
+    dest: "~/.azure/credentials"
+    mode: '0600'

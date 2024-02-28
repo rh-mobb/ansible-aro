@@ -1,12 +1,15 @@
 ---
-- block:
+- name: Set facts
+  when: azr_jumphost | bool
+    # msg:
+  block:
     - name: Get facts for one network interface
-      azure_rm_publicipaddress_info:
+      azure.azcollection.azure_rm_publicipaddress_info:
         resource_group: "{{ azr_resource_group }}"
         name: "{{ _jumphost.ansible_facts.azure_vm.properties.networkProfile.networkInterfaces[0].name }}"
       register: _nic
-
-    - debug:
+    - name: Debug mesage
+      ansible.builtin.debug:
         msg: |
           SSH to jumphost (enable socks proxy) by running:
             ssh -D 1337 -C -i {{ azr_jumphost_ssh_key | splitext | first }} aro@{{ _nic.publicipaddresses[0].ip_address }}
@@ -14,10 +17,8 @@
           VPN to jumphost via sshuttle:
             sshuttle --dns -NHr aro@{{ _nic.publicipaddresses[0].ip_address }} {{ azr_virtual_network.address_prefixes_cidr[0] }}
 
-  when: azr_jumphost | bool
-    # msg:
-
-- debug:
+- name: Debug message
+  ansible.builtin.debug:
     msg: |
       ***************************************
       {{ azr_aro_cluster }} created.

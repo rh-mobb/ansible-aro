@@ -1,10 +1,11 @@
 ---
-- hosts:      "all"
-  connection: "local"
+- hosts: all
+  connection: local
   vars_files:
-      - vars/main.yaml
+    - vars/main.yaml
 
   roles:
+    - name: roles/azure-auth
     - name: roles/infra-create
     - name: roles/cluster-create
     - name: roles/jumphost-create
@@ -17,7 +18,7 @@
     # rerun infra-create as we need to update routes for egress lockdown
     - name: roles/infra-create
       when:
-          - azr_aro_egress_lockdown | bool
+        - azr_aro_egress_lockdown | bool
     - name: roles/add-pull-secret
       when:
         - azr_aro_pull_secret != ""
