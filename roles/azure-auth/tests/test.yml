@@ -1,6 +1,5 @@
 ---
 - hosts: localhost
   connection: local
-  remote_user: root
   roles:
-    - roles/infra-create
+    - ../../azure-auth

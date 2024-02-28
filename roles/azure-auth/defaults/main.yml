@@ -1,0 +1,9 @@
+---
+# defaults file for azure-auth
+ansible_python_interpreter: /usr/bin/python3.9
+staging_dir: "{{ playbook_dir }}/staging"
+
+subscription_id: 027076cc-4655-484c-b43e-6aca6eb5f52c
+tenant_id: 64dc69e4-d083-49fc-9569-ebece1dd1408
+client_id: 7c90d97e-1e96-4344-84d5-9da8340d0f0f
+client_password: qaJ8Q~scwWImadhGISKkOqXjAlMiLSXJVN9IOcG3 # TODO - move this into ansible vault

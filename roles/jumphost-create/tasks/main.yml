@@ -7,15 +7,15 @@
 #   name: jumphost
 #   address_prefix_cidr: "10.0.3.0/24"
 
-- name: "Create a jumphost subnet (non egress lockdown)"
-  azure_rm_subnet:
+- name: Create a jumphost subnet (non egress lockdown)
+  azure.azcollection.azure_rm_subnet:
     resource_group: "{{ azr_resource_group }}"
     virtual_network_name: "{{ azr_virtual_network.name }}"
     name: "{{ azr_jumphost_subnet.name }}"
     address_prefix_cidr: "{{ azr_jumphost_subnet.address_prefix_cidr }}"
 
 - name: Create VM with defaults
-  azure_rm_virtualmachine:
+  azure.azcollection.azure_rm_virtualmachine:
     resource_group: "{{ azr_resource_group }}"
     name: jumphost
     admin_username: aro

@@ -1,6 +1,6 @@
 ---
 - name: Create a resource group
-  azure_rm_resourcegroup:
+  azure.azcollection.azure_rm_resourcegroup:
     name: "{{ azr_resource_group }}"
     location: "{{ azr_location }}"
     state: present
@@ -14,7 +14,7 @@
     tags: "{{ azr_tags }}"
 
 - name: Get Azure Firewall
-  azure_rm_azurefirewall_info:
+  azure.azcollection.azure_rm_azurefirewall_info:
     resource_group: "{{ azr_resource_group }}"
     name: firewall
   register: _firewall
@@ -22,9 +22,12 @@
     - azr_aro_egress_lockdown | bool
   failed_when: false
 
-- block:
+- name: Create subnet block
+  when: (_firewall.firewalls is not defined) or
+        (not _cluster_ready | default(False))
+  block:
     - name: Create a control subnet
-      azure_rm_subnet:
+      azure.azcollection.azure_rm_subnet:
         resource_group: "{{ azr_resource_group }}"
         virtual_network_name: "{{ azr_virtual_network.name }}"
         name: "{{ azr_aro_control_subnet.name }}"
@@ -35,7 +38,7 @@
       register: _control_subnet
 
     - name: Create a machine subnet
-      azure_rm_subnet:
+      azure.azcollection.azure_rm_subnet:
         resource_group: "{{ azr_resource_group }}"
         virtual_network_name: "{{ azr_virtual_network.name }}"
         name: "{{ azr_aro_machine_subnet.name }}"
@@ -43,12 +46,15 @@
         service_endpoints:
           - service: "Microsoft.ContainerRegistry"
       register: _machine_subnet
-  when: (_firewall.firewalls is not defined) or
-        (not _cluster_ready | default(False))
 
-- block:
+- name: Update subnets
+  when:
+    - _firewall.firewalls is defined
+    - azr_aro_egress_lockdown | bool
+    - _cluster_ready | default(False)
+  block:
     - name: Update a control subnet to use egress route
-      azure_rm_subnet:
+      azure.azcollection.azure_rm_subnet:
         resource_group: "{{ azr_resource_group }}"
         virtual_network_name: "{{ azr_virtual_network.name }}"
         name: "{{ azr_aro_control_subnet.name }}"
@@ -60,8 +66,8 @@
           name: aroRouteTable
           resource_group: "{{ azr_resource_group }}"
 
-    - name: update machine subnet to use egress route
-      azure_rm_subnet:
+    - name: Update machine subnet to use egress route
+      azure.azcollection.azure_rm_subnet:
         resource_group: "{{ azr_resource_group }}"
         virtual_network_name: "{{ azr_virtual_network.name }}"
         name: "{{ azr_aro_machine_subnet.name }}"
@@ -71,9 +77,4 @@
         route_table:
           name: aroRouteTable
           resource_group: "{{ azr_resource_group }}"
-  when:
-    - _firewall.firewalls is defined
-    - azr_aro_egress_lockdown | bool
-    - _cluster_ready | default(False)
-
 

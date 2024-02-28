@@ -1,18 +1,20 @@
 ---
-- name: check cluster
+- name: Check cluster
   azure.azcollection.azure_rm_openshiftmanagedcluster_info:
     resource_group: "{{ azr_resource_group }}"
     name: "{{ azr_aro_cluster }}"
   register: _aro_check
-  failed_when: False
-  changed_when: False
+  failed_when: false
+  changed_when: false
 
-- debug:
+- name: Output cluster result
+  ansible.builtin.debug:
     msg: |
       A cluster with the name {{ azr_aro_cluster }} already exists.
       Skipping RBAC and Cluster Creation.
 
-- fail:
+- name: Fail logs
+  ansible.builtin.fail:
     msg: |
       Cluster {{ azr_aro_cluster }} failed to provision.
       Cluster Status:
@@ -20,19 +22,23 @@
   when: (_aro_check.clusters != {}) and
         (_aro_check.clusters.properties.provisioningState == "Failed")
 
-- include_tasks: rbac.yml
+- name: Run rbac tasks
+  ansible.builtin.include_tasks: rbac.yml
   when:
     - _aro_check.clusters == {}
 
-- block:
-  - name: what cluster am i creating?
-    debug:
-      msg: |
-        ***************************************
-        Preparing to create {{ azr_aro_cluster }}.
-        This task may take up to an hour.
-        ***************************************
-      verbosity: 0
+- name: Create ocp cluster
+  when:
+    - _aro_check.clusters == {}
+  block:
+    - name: What cluster am i creating?
+      ansible.builtin.debug:
+        msg: |
+          ***************************************
+          Preparing to create {{ azr_aro_cluster }}.
+          This task may take up to an hour.
+          ***************************************
+        verbosity: 0
 
 - name: Create openshift cluster
   azure.azcollection.azure_rm_openshiftmanagedcluster:
@@ -51,15 +57,14 @@
       pod_cidr: "10.128.0.0/14"
       service_cidr: "172.30.0.0/16"
     worker_profiles:
-      - vm_size : "Standard_D4s_v3"
-        subnet_id : "{{ _machine_subnet.state.id }}"
-        disk_size : 128
-        count : 3
+      - vm_size: "Standard_D4s_v3"
+        subnet_id: "{{ _machine_subnet.state.id }}"
+        disk_size: 128
+        count: 3
     master_profile:
-      vm_size : "Standard_D8s_v3"
+      vm_size: "Standard_D8s_v3"
       subnet_id: "{{ _control_subnet.state.id }}"
-  when:
-    - _aro_check.clusters == {}
+
   # - name: create aro cluster
   #   shell: |
   #     az aro create \

@@ -19,7 +19,7 @@
     ocp_console: "{{ _aro_cluster.clusters.properties.consoleProfile.url }}"
     kube_username: "{{ _aro_creds.credentials.kubeadminUsername }}"
     kube_password: "{{ _aro_creds.credentials.kubeadminPassword }}"
-  # no_log: true
+  # no_log: false # TODO - Change me back after troubleshooting
 
 - name: get access token from openshift
   openshift_auth:
@@ -33,7 +33,7 @@
 
 - set_fact:
     ocp_api_key: "{{ openshift_auth_results.openshift_auth.api_key }}"
-  no_log: true
+  no_log: false # TODO - Change me back after troubleshooting
 
 # Previous task provides the token/api_key, while all other parameters
 # are taken from module_defaults
@@ -42,4 +42,4 @@
     host: "{{ kube_api }}"
     api_key: "{{ ocp_api_key }}"
     kind: Node
-  no_log: true
+  no_log: false # TODO - Change me back after troubleshooting
