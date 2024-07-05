@@ -12,9 +12,9 @@ RUN curl -slL https://storage.googleapis.com/kubernetes-release/release/v1.18.3/
 
 
 RUN groupadd ansible --g 1000 && useradd -s /bin/bash -g ansible -u 1000 ansible -d /home/ansible
+RUN mkdir -p /ansible/virtualenv && chown -R ansible:ansible /ansible
 USER ansible:ansible
 
-RUN mkdir -p /ansible/virtualenv && chown -R ansible:ansible /ansible
 
 WORKDIR /ansible
 
@@ -27,7 +27,7 @@ RUN /ansible/virtualenv/bin/pip3 install -r /ansible/requirements.txt
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 # # update the image
-RUN microdnf --enablerepo=ubi-8-baseos -y install \
+RUN microdnf --enablerepo=ubi-8-baseos-rpms -y install \
     openssl unzip python3 \
     shadow-utils \
     && microdnf clean all
