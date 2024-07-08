@@ -30,6 +30,7 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal
 RUN microdnf --enablerepo=ubi-8-baseos-rpms -y install \
     openssl unzip python3 \
     shadow-utils \
+    make \
     && microdnf clean all
 
 RUN groupadd ansible --g 1000 && useradd -s /bin/bash -g ansible -u 1000 ansible -d /ansible
