@@ -3,7 +3,7 @@ FROM registry.access.redhat.com/ubi8/ubi as build
 RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 RUN yum -y install \
     bash gcc libffi-devel git gpgme-devel libxml2-devel \
-    libxslt-devel curl openssl-devel python3-devel unzip
+    libxslt-devel curl openssl-devel python3.12-devel unzip
 
 RUN mkdir -p /opt/bin && mkdir /opt/aws
 
@@ -20,6 +20,7 @@ WORKDIR /ansible
 
 COPY ./requirements.txt /ansible/requirements.txt
 
+RUN python3 --version
 RUN python3 -m venv /ansible/virtualenv
 RUN /ansible/virtualenv/bin/python3 -m pip install --upgrade pip
 RUN /ansible/virtualenv/bin/pip3 install -r /ansible/requirements.txt
@@ -28,7 +29,7 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 # # update the image
 RUN microdnf --enablerepo=ubi-8-baseos-rpms -y install \
-    openssl unzip python3 \
+    openssl unzip python3.12 \
     shadow-utils \
     make \
     && microdnf clean all
