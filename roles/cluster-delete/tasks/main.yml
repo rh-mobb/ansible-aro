@@ -33,16 +33,18 @@
 - name: show ad application service principal
   azure.azcollection.azure_rm_adapplication_info:
     tenant: "{{ azr_tenant_id }}"
+    app_display_name: "{{ app_display_name }}"
   register: _ad_application
   no_log: true
 
-# - debug:
-#     var: _ad_application.applications[0]
+- debug:
+    var: _ad_application.applications[0]
 
 - name: delete ad application
   azure.azcollection.azure_rm_adapplication:
     tenant: "{{ azr_tenant_id }}"
     app_id: "{{ item.app_id  }}"
+    display_name: "{{ app_display_name }}"
     state: absent
   when: item.app_display_name == app_display_name
   with_items:

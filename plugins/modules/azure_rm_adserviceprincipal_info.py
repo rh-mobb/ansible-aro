@@ -5,8 +5,8 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
-__metaclass__ = type
 
+__metaclass__ = type
 
 DOCUMENTATION = '''
 module: azure_rm_adserviceprincipal_info
@@ -23,11 +23,6 @@ options:
         description:
             - The application ID.
         type: str
-    tenant:
-        description:
-            - The tenant ID.
-        type: str
-        required: True
     object_id:
         description:
             - It's service principal's object ID.
@@ -42,38 +37,46 @@ author:
 '''
 
 EXAMPLES = '''
-  - name: get ad sp info
-    azure_rm_adserviceprincipal_info:
-      app_id: "{{ app_id }}"
-      tenant: "{{ tenant_id }}"
-
+- name: get ad sp info
+  azure_rm_adserviceprincipal_info:
+    app_id: "{{ app_id }}"
+- name: get all service principals
+  azure_rm_adserviceprincipal_info:
 '''
 
 RETURN = '''
-app_display_name:
+service_principals:
     description:
-        - Object's display name or its prefix.
-    type: str
+        - A list of service principals in the tenant. If app_id or object_id is set, the maximum length
+          of this list should be one.
+    type: list
+    elements: dict
     returned: always
-    sample: sp
-app_id:
-    description:
-        - The application ID.
-    returned: always
-    type: str
-    sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-app_role_assignment_required:
-    description:
-        - Whether the Role of the Service Principal is set.
-    type: bool
-    returned: always
-    sample: false
-object_id:
-    description:
-        - It's service principal's object ID.
-    returned: always
-    type: str
-    sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    contains:
+        app_display_name:
+            description:
+                - Object's display name or its prefix.
+            type: str
+            returned: always
+            sample: sp
+        app_id:
+            description:
+                - The application ID.
+            returned: always
+            type: str
+            sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        app_role_assignment_required:
+            description:
+                - Whether the Role of the Service Principal is set.
+            type: bool
+            returned: always
+            sample: false
+        object_id:
+            description:
+                - It's service principal's object ID.
+            returned: always
+            type: str
+            sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 
 '''
@@ -81,8 +84,8 @@ object_id:
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBase
 
 try:
-    from msrestazure.azure_exceptions import CloudError
-    from azure.graphrbac.models import GraphErrorException
+    import asyncio
+    from msgraph.generated.service_principals.service_principals_request_builder import ServicePrincipalsRequestBuilder
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -94,14 +97,12 @@ class AzureRMADServicePrincipalInfo(AzureRMModuleBase):
         self.module_arg_spec = dict(
             app_id=dict(type='str'),
             object_id=dict(type='str'),
-            display_name=dict(type='str'),
-            tenant=dict(type='str', required=True),
+            app_display_name=dict(type='str'),
         )
 
-        self.tenant = None
         self.app_id = None
         self.object_id = None
-        self.display_name = None
+        self.app_display_name = None
         self.results = dict(changed=False)
 
         super(AzureRMADServicePrincipalInfo, self).__init__(derived_arg_spec=self.module_arg_spec,
@@ -114,21 +115,18 @@ class AzureRMADServicePrincipalInfo(AzureRMModuleBase):
         for key in list(self.module_arg_spec.keys()):
             setattr(self, key, kwargs[key])
 
+        self._client = self.get_msgraph_client()
+
         service_principals = []
 
         try:
-            client = self.get_graphrbac_client(self.tenant)
-            if self.object_id:
-                service_principals = [client.service_principals.get(self.object_id)]
-            elif self.app_id:
-                service_principals = list(client.service_principals.list(filter="servicePrincipalNames/any(c:c eq '{0}')".format(self.app_id)))
-            elif self.display_name:
-                service_principals = list(client.service_principals.list(filter="displayName eq '%s'" % self.display_name))
+            if self.object_id is None:
+                service_principals = asyncio.get_event_loop().run_until_complete(self.get_service_principals())
             else:
-                self.fail("You must specify either app_id, object_id or display_name")
+                service_principals = [asyncio.get_event_loop().run_until_complete(self.get_service_principal())]
 
             self.results['service_principals'] = [self.to_dict(sp) for sp in service_principals]
-        except GraphErrorException as ge:
+        except Exception as ge:
             self.fail("failed to get service principal info {0}".format(str(ge)))
 
         return self.results
@@ -136,10 +134,37 @@ class AzureRMADServicePrincipalInfo(AzureRMModuleBase):
     def to_dict(self, object):
         return dict(
             app_id=object.app_id,
-            object_id=object.object_id,
+            object_id=object.id,
             app_display_name=object.display_name,
             app_role_assignment_required=object.app_role_assignment_required
         )
+
+    async def get_service_principal(self):
+        return await self._client.service_principals.by_service_principal_id(self.object_id).get()
+
+    async def get_service_principals(self):
+        kwargs = {}
+        if self.app_id is not None:
+            request_configuration = ServicePrincipalsRequestBuilder.ServicePrincipalsRequestBuilderGetRequestConfiguration(
+                query_parameters=ServicePrincipalsRequestBuilder.ServicePrincipalsRequestBuilderGetQueryParameters(
+                    filter="servicePrincipalNames/any(c:c eq '{0}')".format(self.app_id))
+            )
+            kwargs['request_configuration'] = request_configuration
+        if self.app_display_name is not None:
+            request_configuration = ServicePrincipalsRequestBuilder.ServicePrincipalsRequestBuilderGetRequestConfiguration(
+                query_parameters=ServicePrincipalsRequestBuilder.ServicePrincipalsRequestBuilderGetQueryParameters(
+                    filter="DisplayName eq '%s'".format(self.app_display_name))
+            )
+            kwargs['request_configuration'] = request_configuration
+        service_principals = []
+        response = await self._client.service_principals.get(**kwargs)
+        if response:
+            service_principals += response.value
+        while response is not None and response.odata_next_link is not None:
+            response = await self._client.service_principals.with_url(response.odata_next_link).get(**kwargs)
+            if response:
+                service_principals += response.value
+        return service_principals
 
 
 def main():

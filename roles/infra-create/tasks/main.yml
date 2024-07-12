@@ -1,4 +1,5 @@
 ---
+
 - name: Create a resource group
   azure_rm_resourcegroup:
     name: "{{ azr_resource_group }}"
@@ -75,5 +76,3 @@
     - _firewall.firewalls is defined
     - azr_aro_egress_lockdown | bool
     - _cluster_ready | default(False)
-
-

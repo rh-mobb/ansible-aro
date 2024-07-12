@@ -59,8 +59,11 @@
 - name: create ad password
   azure.azcollection.azure_rm_adpassword:
     app_id: "{{ azr_service_principal_application_id }}"
-    value: "{{ azr_service_principal_application_secret }}"
     tenant: "{{ azr_tenant_id }}"
+  register: _ad_passwd
+
+- set_fact:
+    azr_service_principal_application_secret: "{{ _ad_passwd.secret_text}}"
 
 # Get object id for role definition of ARO Subscription
 - name: Obtain ARO Resource Group Role Definition Scope
@@ -110,20 +113,25 @@
   set_fact:
     rg_oid: "{{ oid_rg_scope_query.ansible_facts.fact[0][0] }}"
 
-- block:
+- when: azr_aro_provider_id == ""
+  block:
     - name: get ad sp info
-      azure_rm_adserviceprincipal_info:
-        display_name: "Azure Red Hat OpenShift RP"
-        tenant: "{{ azr_tenant_id }}"
+      azure.azcollection.azure_rm_adserviceprincipal_info:
       register: _aro_rp_info
+      no_log: true
+    # - debug:
+    #     msg: "sp {{ item.app_id }} - {{ item.app_display_name }}"
+    #   when: item.app_display_name == "Azure Red Hat OpenShift RP"
+    #   with_items: "{{ _aro_rp_info.service_principals }}"
 
     - set_fact:
-        azr_aro_provider_id: "{{ _aro_rp_info.service_principals[0].object_id }}"
-  when: azr_aro_provider_id == ""
+        azr_aro_provider_id: "{{ item.object_id }}"
+      when: item.app_display_name == "Azure Red Hat OpenShift RP"
+      with_items: "{{ _aro_rp_info.service_principals }}"
+      no_log: true
 
 - name: Granting the ARO Resource Provider Contributor access to the ARO virtual network
   azure.azcollection.azure_rm_roleassignment:
     scope: "/subscriptions/{{ azr_subscription_id }}/resourceGroups/{{ azr_resource_group }}/providers/Microsoft.Network/virtualNetworks/{{ azr_virtual_network.name }}"
     assignee_object_id: "{{ azr_aro_provider_id }}"
     role_definition_id: "{{ rg_oid }}"
-

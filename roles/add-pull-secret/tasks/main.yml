@@ -1,4 +1,13 @@
 ---
+- name: Check that the pull secret exists
+  stat:
+    path: "{{ azr_aro_pull_secret }}"
+  register: _stat_result
+
+- fail:
+    msg: "pull secret file {{ azr_aro_pull_secret }} does not exist"
+  when: not _stat_result.stat.exists
+
 - name: Get the existing OpenShift Pull Secret
   kubernetes.core.k8s_info:
     host: "{{ kube_api }}"

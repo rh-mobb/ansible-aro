@@ -9,7 +9,11 @@ azr_tenant_id: ""
 #   -o tsv
 azr_aro_provider_id: ""
 azr_service_principal_application_id: ""
-azr_service_principal_application_secret: "$Abc12345678"
+
+## azure.azcollection.azure_rm_adpassword no longer supports setting a password, it
+## must be retrieved from the output of the module.
+### azr_service_principal_application_secret: "$Abc12345678"
+
 # defaults file for roles/cluster-create
 
 azr_aro_cluster: openshift

@@ -7,11 +7,6 @@
   failed_when: False
   changed_when: False
 
-- debug:
-    msg: |
-      A cluster with the name {{ azr_aro_cluster }} already exists.
-      Skipping RBAC and Cluster Creation.
-
 - fail:
     msg: |
       Cluster {{ azr_aro_cluster }} failed to provision.
@@ -20,58 +15,47 @@
   when: (_aro_check.clusters != {}) and
         (_aro_check.clusters.properties.provisioningState == "Failed")
 
-- include_tasks: rbac.yml
-  when:
-    - _aro_check.clusters == {}
+- debug:
+    msg: |
+      A cluster with the name {{ azr_aro_cluster }} already exists.
+      Skipping RBAC and Cluster Creation.
+  when: _aro_check.clusters != {}
 
-- block:
-  - name: what cluster am i creating?
-    debug:
-      msg: |
-        ***************************************
-        Preparing to create {{ azr_aro_cluster }}.
-        This task may take up to an hour.
-        ***************************************
-      verbosity: 0
-
-- name: Create openshift cluster
-  azure.azcollection.azure_rm_openshiftmanagedcluster:
-    resource_group: "{{ azr_resource_group }}"
-    name: "{{ azr_aro_cluster }}"
-    location: "{{ azr_location }}"
-    # cluster_profile:
-    ingress_profiles:
-      - visibility: "{{ azr_aro_public_ingress | ternary('Public', 'Private') }}"
-    api_server_profile:
-      visibility: "{{ azr_aro_public_api | ternary('Public', 'Private') }}"
-    service_principal_profile:
-      client_id: "{{ azr_service_principal_application_id }}"
-      client_secret: "{{ azr_service_principal_application_secret }}"
-    network_profile:
-      pod_cidr: "10.128.0.0/14"
-      service_cidr: "172.30.0.0/16"
-    worker_profiles:
-      - vm_size : "Standard_D4s_v3"
-        subnet_id : "{{ _machine_subnet.state.id }}"
-        disk_size : 128
-        count : 3
-    master_profile:
-      vm_size : "Standard_D8s_v3"
-      subnet_id: "{{ _control_subnet.state.id }}"
-  when:
+- when:
     - _aro_check.clusters == {}
-  # - name: create aro cluster
-  #   shell: |
-  #     az aro create \
-  #     --resource-group {{ azr_resource_group }} \
-  #     --name {{ azr_aro_cluster }} \
-  #     --vnet "{{ azr_virtual_network.name }}" \
-  #     --master-subnet "{{ azr_aro_control_subnet.name }}" \
-  #     --worker-subnet "{{ azr_aro_machine_subnet.name }}" \
-  #     --pull-secret @{{ azr_aro_pull_secret }} \
-  #     --apiserver-visibility {{ azr_aro_public_api | ternary('public', 'private') }} \
-  #     --ingress-visibility {{ azr_aro_public_ingress  | ternary('public', 'private') }} \
-  #     --no-wait
-  #   register: _aro_create
-  # when:
-  #   - _aro_check.clusters == {}
+  block:
+    - name: what cluster am i creating?
+      debug:
+        msg: |
+          ***************************************
+          Preparing to create {{ azr_aro_cluster }}.
+          This task may take up to an hour.
+          ***************************************
+        verbosity: 0
+
+    - include_tasks: rbac.yml
+
+    - name: Create openshift cluster
+      azure_rm_openshiftmanagedcluster:
+        resource_group: "{{ azr_resource_group }}"
+        name: "{{ azr_aro_cluster }}"
+        location: "{{ azr_location }}"
+        ingress_profiles:
+          - visibility: "{{ azr_aro_public_ingress | ternary('Public', 'Private') }}"
+        api_server_profile:
+          visibility: "{{ azr_aro_public_api | ternary('Public', 'Private') }}"
+        service_principal_profile:
+          client_id: "{{ azr_service_principal_application_id }}"
+          client_secret: "{{ azr_service_principal_application_secret }}"
+        network_profile:
+          pod_cidr: "10.128.0.0/14"
+          service_cidr: "172.30.0.0/16"
+        worker_profiles:
+          - vm_size : "Standard_D4s_v3"
+            subnet_id : "{{ _machine_subnet.state.id }}"
+            disk_size : 128
+            count : 3
+            name: worker
+        master_profile:
+          vm_size : "Standard_D8s_v3"
+          subnet_id: "{{ _control_subnet.state.id }}"

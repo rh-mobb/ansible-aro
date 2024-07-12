@@ -96,7 +96,7 @@ class AzureRMOpenShiftManagedClustersCredentialsInfo(AzureRMModuleBaseExt):
         self.status_code = [200]
 
         self.query_parameters = {}
-        self.query_parameters['api-version'] = '2020-04-30'
+        self.query_parameters['api-version'] = '2021-09-01-preview'
         self.header_parameters = {}
         self.header_parameters['Content-Type'] = 'application/json; charset=utf-8'
 
@@ -138,7 +138,7 @@ class AzureRMOpenShiftManagedClustersCredentialsInfo(AzureRMModuleBaseExt):
                                               self.status_code,
                                               600,
                                               30)
-            results = json.loads(response.text)
+            results = json.loads(response.body())
             # self.log('Response : {0}'.format(response))
         except CloudError as e:
             self.log('Could not get info for @(Model.ModuleOperationNameUpper).')

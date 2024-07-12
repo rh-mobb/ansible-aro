@@ -10,6 +10,7 @@
     resource_group: "{{ azr_resource_group }}"
     name: "{{ azr_aro_cluster }}"
   register: _aro_creds
+  no_log: true
 
 - debug:
     var: _aro_cluster
@@ -19,7 +20,7 @@
     ocp_console: "{{ _aro_cluster.clusters.properties.consoleProfile.url }}"
     kube_username: "{{ _aro_creds.credentials.kubeadminUsername }}"
     kube_password: "{{ _aro_creds.credentials.kubeadminPassword }}"
-  # no_log: true
+  no_log: true
 
 - name: get access token from openshift
   openshift_auth:
@@ -30,6 +31,7 @@
   until: openshift_auth_results.openshift_auth is defined
   retries: 30
   delay: 10
+  no_log: true
 
 - set_fact:
     ocp_api_key: "{{ openshift_auth_results.openshift_auth.api_key }}"
