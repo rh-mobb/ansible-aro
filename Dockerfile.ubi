@@ -3,23 +3,25 @@ FROM registry.access.redhat.com/ubi8/ubi as build
 RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 RUN yum -y install \
     bash gcc libffi-devel git gpgme-devel libxml2-devel \
-    libxslt-devel curl openssl-devel python3-devel unzip
+    libxslt-devel curl openssl-devel python3.12-devel unzip
 
-RUN mkdir -p /opt/bin && mkdir /opt/aws
+RUN mkdir -p /opt/bin && mkdir -p /opt/az
 
 RUN curl -slL https://storage.googleapis.com/kubernetes-release/release/v1.18.3/bin/linux/amd64/kubectl \
         -o kubectl && install kubectl /opt/bin/
 
+RUN curl -slL https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm -o /opt/az/packages-microsoft-prod.rpm
 
 RUN groupadd ansible --g 1000 && useradd -s /bin/bash -g ansible -u 1000 ansible -d /home/ansible
+RUN mkdir -p /ansible/virtualenv && chown -R ansible:ansible /ansible
 USER ansible:ansible
 
-RUN mkdir -p /ansible/virtualenv && chown -R ansible:ansible /ansible
 
 WORKDIR /ansible
 
 COPY ./requirements.txt /ansible/requirements.txt
 
+RUN python3 --version
 RUN python3 -m venv /ansible/virtualenv
 RUN /ansible/virtualenv/bin/python3 -m pip install --upgrade pip
 RUN /ansible/virtualenv/bin/pip3 install -r /ansible/requirements.txt
@@ -27,9 +29,14 @@ RUN /ansible/virtualenv/bin/pip3 install -r /ansible/requirements.txt
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 # # update the image
-RUN microdnf --enablerepo=ubi-8-baseos -y install \
-    openssl unzip python3 \
+COPY --from=build /opt/az/packages-microsoft-prod.rpm /opt/az/packages-microsoft-prod.rpm
+
+RUN rpm -i /opt/az/packages-microsoft-prod.rpm \
+    && microdnf --enablerepo=ubi-8-baseos-rpms --enablerepo=packages-microsoft-com-prod -y install \
+    openssl unzip python3.12 \
     shadow-utils \
+    make \
+    azure-cli \
     && microdnf clean all
 
 RUN groupadd ansible --g 1000 && useradd -s /bin/bash -g ansible -u 1000 ansible -d /ansible
