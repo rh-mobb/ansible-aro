@@ -8,7 +8,7 @@
 #   address_prefix_cidr: "10.0.3.0/24"
 
 - name: Create a firewall subnet
-  azure_rm_subnet:
+  azure.azcollection.azure_rm_subnet:
     resource_group: "{{ azr_resource_group }}"
     virtual_network_name: "{{ azr_virtual_network.name }}"
     name: "AzureFirewallSubnet"
@@ -16,14 +16,14 @@
   register: _firewall_subnet
 
 - name: Create public IP address
-  azure_rm_publicipaddress:
+  azure.azcollection.azure_rm_publicipaddress:
       resource_group: "{{ azr_resource_group }}"
       allocation_method: Static
       name: "firewall"
       sku: Standard
 
 - name: Create Azure Firewall
-  azure_rm_azurefirewall:
+  azure.azcollection.azure_rm_azurefirewall:
     resource_group: "{{ azr_resource_group }}"
     name: firewall
     ip_configurations:
@@ -76,21 +76,21 @@
                   - 'auth.docker.io'
 
 - name: Get Azure Firewall
-  azure_rm_azurefirewall_info:
+  azure.azcollection.azure_rm_azurefirewall_info:
     resource_group: "{{ azr_resource_group }}"
     name: firewall
   register: _firewall
 
-- debug:
+- ansible.builtin.debug:
     var: _firewall.firewalls.ip_configurations[0].properties.privateIPAddress
 
 - name: Create a route table
-  azure_rm_routetable:
+  azure.azcollection.azure_rm_routetable:
     resource_group: "{{ azr_resource_group }}"
     name: aroRouteTable
 
 - name: Create a egress route
-  azure_rm_route:
+  azure.azcollection.azure_rm_route:
     resource_group: "{{ azr_resource_group }}"
     name: aro-egress
     address_prefix: 0.0.0.0/0
@@ -99,12 +99,11 @@
     next_hop_ip_address: "{{ _firewall.firewalls.ip_configurations[0].properties.privateIPAddress }}"
 
 - name: Create a vnet route
-  azure_rm_route:
+  azure.azcollection.azure_rm_route:
     resource_group: "{{ azr_resource_group }}"
     name: aro-local
     address_prefix: "{{ azr_virtual_network.address_prefixes_cidr[0]}}"
     next_hop_type: vnet_local
     route_table_name: aroRouteTable
-
 
 

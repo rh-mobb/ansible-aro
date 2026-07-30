@@ -1,10 +1,10 @@
 ---
 - name: Check that the pull secret exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ azr_aro_pull_secret }}"
   register: _stat_result
 
-- fail:
+- ansible.builtin.fail:
     msg: "pull secret file {{ azr_aro_pull_secret }} does not exist"
   when: not _stat_result.stat.exists
 
@@ -17,18 +17,18 @@
     name: pull-secret
     namespace: openshift-config
   register: _cluster_pull_secret
-  no_log: True
+  no_log: true
 
 # - debug:
 #     var: _cluster_pull_secret
 
-- set_fact:
+- ansible.builtin.set_fact:
     _orig_pull_secret: "{{ _cluster_pull_secret.resources[0].data['.dockerconfigjson'] | b64decode | from_json }}"
     _new_pull_secret: "{{ lookup('file', azr_aro_pull_secret) | from_json }}"
-  no_log: True
-- set_fact:
+  no_log: true
+- ansible.builtin.set_fact:
     _joint_pull_secret: "{{ _orig_pull_secret | combine(_new_pull_secret, recursive=True) }}"
-  no_log: True
+  no_log: true
 
 - name: Set the new OpenShift Pull Secret
   kubernetes.core.k8s:
@@ -42,7 +42,7 @@
         namespace: openshift-config
       data:
         .dockerconfigjson: "{{ _joint_pull_secret | to_json | b64encode }}"
-  no_log: True
+  no_log: true
 
 - name: Configure sample operators
   kubernetes.core.k8s:

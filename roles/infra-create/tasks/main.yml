@@ -1,7 +1,7 @@
 ---
 
 - name: Create a resource group
-  azure_rm_resourcegroup:
+  azure.azcollection.azure_rm_resourcegroup:
     name: "{{ azr_resource_group }}"
     location: "{{ azr_location }}"
     state: present
@@ -15,7 +15,7 @@
     tags: "{{ azr_tags }}"
 
 - name: Get Azure Firewall
-  azure_rm_azurefirewall_info:
+  azure.azcollection.azure_rm_azurefirewall_info:
     resource_group: "{{ azr_resource_group }}"
     name: firewall
   register: _firewall
@@ -25,7 +25,7 @@
 
 - block:
     - name: Create a control subnet
-      azure_rm_subnet:
+      azure.azcollection.azure_rm_subnet:
         resource_group: "{{ azr_resource_group }}"
         virtual_network_name: "{{ azr_virtual_network.name }}"
         name: "{{ azr_aro_control_subnet.name }}"
@@ -36,7 +36,7 @@
       register: _control_subnet
 
     - name: Create a machine subnet
-      azure_rm_subnet:
+      azure.azcollection.azure_rm_subnet:
         resource_group: "{{ azr_resource_group }}"
         virtual_network_name: "{{ azr_virtual_network.name }}"
         name: "{{ azr_aro_machine_subnet.name }}"
@@ -49,7 +49,7 @@
 
 - block:
     - name: Update a control subnet to use egress route
-      azure_rm_subnet:
+      azure.azcollection.azure_rm_subnet:
         resource_group: "{{ azr_resource_group }}"
         virtual_network_name: "{{ azr_virtual_network.name }}"
         name: "{{ azr_aro_control_subnet.name }}"
@@ -62,7 +62,7 @@
           resource_group: "{{ azr_resource_group }}"
 
     - name: update machine subnet to use egress route
-      azure_rm_subnet:
+      azure.azcollection.azure_rm_subnet:
         resource_group: "{{ azr_resource_group }}"
         virtual_network_name: "{{ azr_virtual_network.name }}"
         name: "{{ azr_aro_machine_subnet.name }}"

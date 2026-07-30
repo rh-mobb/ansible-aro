@@ -2,7 +2,7 @@
 # BUILD
 #
 
-FROM fedora:33 as build
+FROM fedora:44 as build
 
 ENV HOME=/home/ansible
 
@@ -29,15 +29,18 @@ RUN curl -slL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip \
         -o awscli.zip && unzip awscli.zip && aws/install -i ${HOME}/.local/aws-cli -b /ansible/.local/bin
 
 COPY ./requirements.txt /ansible/requirements.txt
+COPY ./collections /ansible/collections
 
 RUN python3 -m venv /ansible/virtualenv
 RUN /ansible/virtualenv/bin/python3 -m pip install --upgrade pip
 RUN /ansible/virtualenv/bin/pip3 install -r /ansible/requirements.txt
+RUN /ansible/virtualenv/bin/ansible-galaxy collection install -r /ansible/collections/requirements.yml -p /ansible/collections --force
+RUN /ansible/virtualenv/bin/pip3 install -r /ansible/collections/ansible_collections/azure/azcollection/requirements.txt
 
 COPY . /ansible
 
 
-FROM fedora:33
+FROM fedora:44
 
 ENV HOME=/home/ansible
 
@@ -53,13 +56,14 @@ RUN mkdir -p /ansible/virtualenv && chown -R ansible:ansible /ansible
 
 COPY --chown=ansible:ansible . /ansible
 COPY --chown=ansible:ansible --from=build ${HOME}/.local ${HOME}/.local
+COPY --chown=ansible:ansible --from=build /ansible/collections /ansible/collections
 COPY --chown=ansible:ansible --from=build /ansible/virtualenv /ansible/virtualenv
 
 USER ansible:ansible
 
 # # set pathing
 ENV PATH=${HOME}/.local/bin:./virtualenv/bin:/ansible/staging/bin:$PATH
-ENV PYTHONPATH=./virtualenv/lib/python3.8/site-packages/
+ENV ANSIBLE_COLLECTIONS_PATH=/ansible/collections
 ENV ANSIBLE_PYTHON_INTERPRETER=./virtualenv/bin/python
 # # set kubeconfig and ansible options
 ENV KUBECONFIG=/ansible/staging/.kube/config
