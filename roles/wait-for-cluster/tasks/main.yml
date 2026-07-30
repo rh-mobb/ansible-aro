@@ -1,5 +1,5 @@
 ---
-- debug:
+- ansible.builtin.debug:
     msg: "Waiting for cluster to finish provisioning."
 
 - name: make sure the cluster has been defined (ARO RP can take a few minutes)
@@ -22,9 +22,9 @@
   retries: 120
   delay: 60
 
-- fail:
+- ansible.builtin.fail:
     msg: "Cluster {{ azr_aro_cluster }} failed to provision."
   when: _aro_check.clusters.properties.provisioningState == "Failed"
 
-- set_fact:
-    _cluster_ready: True
+- ansible.builtin.set_fact:
+    _cluster_ready: true

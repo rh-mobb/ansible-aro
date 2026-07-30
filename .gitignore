@@ -2,3 +2,6 @@ virtualenv/*
 tmp/*
 bin/*
 pullsecret.txt
+*.log
+__pycache__/
+*.pyc

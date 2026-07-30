@@ -5,6 +5,7 @@ RESOURCE_GROUP ?= ans-$(shell whoami)-rg
 EXTRA_VARS ?= --extra-vars "azr_aro_cluster=$(CLUSTER_NAME) azr_resource_group=$(RESOURCE_GROUP)"
 
 VIRTUALENV ?= "./virtualenv/"
+PYTHON ?= python3.12
 ANSIBLE = $(VIRTUALENV)/bin/ansible-playbook $(EXTRA_VARS)
 
 .PHONY: help
@@ -13,13 +14,12 @@ help:
 
 .PHONY: virtualenv
 virtualenv:
-	LC_ALL=en_US.UTF-8 python3 -m venv $(VIRTUALENV)
+	LC_ALL=en_US.UTF-8 $(PYTHON) -m venv $(VIRTUALENV)
 	. $(VIRTUALENV)/bin/activate
-	$(VIRTUALENV)/bin/pip3 install pip --upgrade
-	LC_ALL=en_US.UTF-8 $(VIRTUALENV)/bin/pip3 install -r requirements.txt
-	$(VIRTUALENV)/bin/ansible-galaxy collection install azure.azcollection --force
-	$(VIRTUALENV)/bin/pip3 install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements.txt
-	$(VIRTUALENV)/bin/ansible-galaxy collection install community.okd
+	$(VIRTUALENV)/bin/python -m pip install pip --upgrade
+	LC_ALL=en_US.UTF-8 $(VIRTUALENV)/bin/python -m pip install -r requirements.txt
+	$(VIRTUALENV)/bin/ansible-galaxy collection install -r collections/requirements.yml --force
+	$(VIRTUALENV)/bin/python -m pip install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements.txt
 
 .PHONY: help
 
@@ -40,7 +40,7 @@ virtualenv:
 
 
 create:
-	$(ANSIBLE) -vvvv create-cluster.yaml
+	$(ANSIBLE) -v create-cluster.yaml
 
 delete:
 	$(ANSIBLE) -v delete-cluster.yaml

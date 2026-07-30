@@ -12,10 +12,10 @@
   register: _aro_creds
   no_log: true
 
-- debug:
+- ansible.builtin.debug:
     var: _aro_cluster
 
-- set_fact:
+- ansible.builtin.set_fact:
     kube_api: "{{ _aro_cluster.clusters.properties.apiserverProfile.url }}"
     ocp_console: "{{ _aro_cluster.clusters.properties.consoleProfile.url }}"
     kube_username: "{{ _aro_creds.credentials.kubeadminUsername }}"
@@ -33,7 +33,7 @@
   delay: 10
   no_log: true
 
-- set_fact:
+- ansible.builtin.set_fact:
     ocp_api_key: "{{ openshift_auth_results.openshift_auth.api_key }}"
   no_log: true
 

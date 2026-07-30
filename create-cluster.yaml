@@ -1,26 +1,26 @@
 ---
-- hosts:      "all"
-  connection: "local"
+- name: Create ARO cluster
+  hosts: all
+  connection: local
   vars_files:
-      - vars/main.yaml
+    - vars/main.yaml
 
   roles:
-    - name: roles/infra-create
-    - name: roles/cluster-create
-    - name: roles/jumphost-create
+    - role: infra-create
+    - role: cluster-create
+    - role: jumphost-create
       when:
         - azr_jumphost | bool
-    - name: roles/egress-lockdown
+    - role: egress-lockdown
       when:
         - azr_aro_egress_lockdown | bool
-    - name: roles/wait-for-cluster
+    - role: wait-for-cluster
     # rerun infra-create as we need to update routes for egress lockdown
-    - name: roles/infra-create
+    - role: infra-create
       when:
-          - azr_aro_egress_lockdown | bool
-    - name: roles/add-pull-secret
+        - azr_aro_egress_lockdown | bool
+    - role: add-pull-secret
       when:
         - azr_aro_pull_secret != ""
         - azr_aro_public_api | bool
-    - name: roles/finish
-
+    - role: finish
